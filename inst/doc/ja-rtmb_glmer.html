@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>rtmb_glmer() で階層モデル・GLMM・分散分析を書く</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">rtmb_glmer()
+で階層モデル・GLMM・分散分析を書く</h1>
+
+
+
+<p>このページでは、<code>rtmb_glmer()</code>
+を使って階層モデルや一般化線形混合モデルを書く方法を説明します。</p>
+<p><code>rtmb_glmer()</code> は、<code>lme4::glmer()</code>
+に近い式でモデルを書き、内部で BayesRTMB の <code>rtmb_code()</code>
+を生成するラッパー関数です。標準的な mixed model から始めて、MCMC、MAP
+推定、変分推論、頻度主義的な分析を同じモデルから切り替えて使えます。</p>
+<p>BayesRTMB
+の推定法の優先度は、基本的に次の順で考えると分かりやすくなります。</p>
+<ol style="list-style-type: decimal">
+<li><code>sample()</code>: MCMC で事後分布を直接調べる。</li>
+<li><code>optimize()</code>: MAP / ML を高速に確認する。random effects
+がある場合は Laplace 近似が便利。</li>
+<li><code>variational()</code>: ADVI で近似事後分布をすばやく見る。</li>
+<li><code>classic()</code>: <code>prior_flat()</code> の wrapper
+モデルを頻度主義的に確認する。</li>
+</ol>
+<div id="rtmb_glmer-とは" class="section level1">
+<h1>1. rtmb_glmer() とは</h1>
+<p><code>rtmb_glmer()</code> は、次のような式を受け取ります。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>)</span></code></pre></div>
+<p>固定効果は <code>y ~ x</code> の部分、ランダム効果は
+<code>(1 | group)</code>
+の部分で指定します。返り値は推定結果ではなく、<code>RTMB_Model</code>
+オブジェクトです。</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>fit_map  <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">laplace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>fit_vb   <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>()</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>fit_cl   <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">classic</span>()</span></code></pre></div>
+<p><code>rtmb_glmer()</code>
+は簡単に使うための入口ですが、内部では一貫した <code>rtmb_code()</code>
+を生成しています。どのようなモデルが作られたかは、<code>print_code()</code>
+で確認できます。</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>mdl<span class="sc">$</span><span class="fu">print_code</span>()</span></code></pre></div>
+</div>
+<div id="最小例-ランダム切片モデル" class="section level1">
+<h1>2. 最小例: ランダム切片モデル</h1>
+<p>まず、グループごとに切片が異なる正規モデルを考えます。</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">library</span>(BayesRTMB)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>dat <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">y =</span> <span class="fu">rnorm</span>(<span class="dv">120</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">x =</span> <span class="fu">rnorm</span>(<span class="dv">120</span>),</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>, <span class="at">each =</span> <span class="dv">6</span>))</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>)</span></code></pre></div>
+<p>BayesRTMB では、まず MCMC で事後分布を確認するのが基本です。</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="at">sampling =</span> <span class="dv">1000</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">warmup =</span> <span class="dv">1000</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">summary</span>()</span></code></pre></div>
+<p>出力は次のように、固定効果、分散パラメータ、事後区間、MCMC
+診断が並びます。</p>
+<pre class="text"><code>## variable       mean    sd    map   q2.5  q97.5  ess_bulk  ess_tail  rhat
+## lp          -171.42  2.31 -169.88 -177.1 -168.4      1420      1695  1.00
+## Intercept_c    0.05  0.15    0.04  -0.25   0.35      2350      2410  1.00
+## b[x]           0.31  0.09    0.30   0.13   0.48      2288      2104  1.00
+## sigma          0.91  0.07    0.90   0.78   1.06      1812      2060  1.00
+## sd[group:Int]  0.43  0.11    0.41   0.24   0.68      1265      1532  1.00</code></pre>
+<p><code>optimize(laplace = TRUE)</code> を使うと、ランダム効果を
+Laplace
+近似で周辺化しながら、固定効果や分散パラメータをすばやく推定できます。</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">laplace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>fit_map<span class="sc">$</span><span class="fu">summary</span>()</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>fit_map<span class="sc">$</span>random_effects</span></code></pre></div>
+<p>MAP 推定では、点推定と Wald 型または sampling-based
+の区間が表示されます。</p>
+<pre class="text"><code>## Call:
+## MAP Estimation via RTMB
+## 
+## Negative Log-Posterior: 169.88
+## Approx. Log Marginal Likelihood (Laplace): -175.21
+## 
+## Point Estimates and 95% Wald CI:
+##        variable  Estimate  Std. Error  Lower 95%  Upper 95%
+##     Intercept_c     0.042       0.151     -0.254      0.338
+##            b[x]     0.301       0.090      0.125      0.478
+##           sigma     0.902       0.071      0.773      1.054
+##   sd[group:Int]     0.407       0.109      0.240      0.690</code></pre>
+<p>MAP 推定は、モデルの挙動を素早く確認したい場合や、MCMC
+の前に初期値やスケール感を見たい場合に便利です。最終的な不確実性を報告する場合は、可能であれば
+MCMC の結果も確認してください。</p>
+</div>
+<div id="formula-の書き方と可視化" class="section level1">
+<h1>3. formula の書き方と可視化</h1>
+<p><code>rtmb_glmer()</code> は、<code>lme4</code> 風の random effect
+記法を使います。</p>
+<table>
+<thead>
+<tr class="header">
+<th>式</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>(1 | group)</code></td>
+<td>グループごとのランダム切片</td>
+</tr>
+<tr class="even">
+<td><code>(x | group)</code></td>
+<td>グループごとのランダム切片とランダム傾き</td>
+</tr>
+<tr class="odd">
+<td><code>(0 + x | group)</code></td>
+<td>グループごとのランダム傾き</td>
+</tr>
+<tr class="even">
+<td><code>(1 | school) + (1 | class)</code></td>
+<td>複数のランダム効果</td>
+</tr>
+</tbody>
+</table>
+<p>交互作用も通常の R formula と同じように書けます。</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>mdl_int <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  y <span class="sc">~</span> x1 <span class="sc">*</span> x2 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>連続変数の中心化には <code>gmc</code> と <code>cwc</code>
+を使えます。</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>mdl_centered <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (x <span class="sc">|</span> group),</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="at">gmc =</span> <span class="st">&quot;x&quot;</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>gmc</code> は grand mean centering、<code>cwc</code> は
+centering within cluster
+です。階層モデルでは、固定効果とランダム効果の解釈を安定させるために、中心化が役に立つことがあります。</p>
+<p>クラスター内中心化を使う場合は、<code>cwc</code>
+にクラスター変数と中心化したい変数を指定します。</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>mdl_cwc <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (x <span class="sc">|</span> group),</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">cwc =</span> <span class="fu">list</span>(<span class="at">cluster =</span> <span class="st">&quot;group&quot;</span>, <span class="at">pars =</span> <span class="st">&quot;x&quot;</span>),</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>この例では、<code>x</code> から各 <code>group</code>
+内の平均を引いた値を使ってモデルを作ります。個人内・クラスター内の変動に注目したい場合や、ランダム傾きモデルの推定を安定させたい場合に使いやすい指定です。</p>
+<div id="ワイド型データと-factors" class="section level2">
+<h2>ワイド型データと factors</h2>
+<p>反復測定データがワイド型で保存されている場合でも、<code>rtmb_glmer()</code>
+は内部でロング型に変換できます。Gaussian model で応答を
+<code>cbind(...)</code> として書き、<code>within</code>
+に測定内要因を指定します。</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>mdl_wide <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="fu">cbind</span>(y_t1, y_t2, y_t3) <span class="sc">~</span> cond <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">data =</span> dat_wide,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="at">within =</span> <span class="fu">list</span>(<span class="at">time =</span> <span class="fu">c</span>(<span class="st">&quot;t1&quot;</span>, <span class="st">&quot;t2&quot;</span>, <span class="st">&quot;t3&quot;</span>)),</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>この例では、<code>y_t1</code>, <code>y_t2</code>, <code>y_t3</code>
+の3列を内部でロング型に展開し、<code>time</code>
+という測定内要因を持つデータとして扱います。ワイド型のまま保存されている反復測定データを、事前に手で
+reshape しなくてもモデル化できます。</p>
+<p>また、データ内では数値や文字列として入っている変数を、モデル作成時に
+factor として扱いたい場合は <code>factors</code> を使えます。</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>mdl_factor <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  y <span class="sc">~</span> cond <span class="sc">+</span> time <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">factors =</span> <span class="fu">c</span>(<span class="st">&quot;cond&quot;</span>, <span class="st">&quot;time&quot;</span>),</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>factors</code> に指定した変数は、内部で
+<code>as.factor()</code> されてから model matrix
+が作られます。カテゴリ変数を数値の連続量として誤って扱うことを避けたい場合に便利です。</p>
+</div>
+<div id="conditional_effects" class="section level2">
+<h2>conditional_effects</h2>
+<p>推定後は、<code>conditional_effects()</code>
+で予測値を可視化できます。</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>fit_int <span class="ot">&lt;-</span> mdl_int<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>ce <span class="ot">&lt;-</span> <span class="fu">conditional_effects</span>(fit_int, <span class="at">effect =</span> <span class="st">&quot;x1:x2&quot;</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="fu">plot</span>(ce)</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">summary</span>(ce)</span></code></pre></div>
+<p><code>summary()</code>
+では、予測値と区間がグリッドごとに表示されます。</p>
+<pre class="text"><code>##     x1     x2  estimate   lower   upper
+## -2.10  -1.00    -0.842  -1.284  -0.398
+## -1.05  -1.00    -0.511  -0.829  -0.189
+##  0.00  -1.00    -0.181  -0.432   0.069
+##  1.05  -1.00     0.150  -0.160   0.462
+##  2.10  -1.00     0.480   0.032   0.931</code></pre>
+<p><code>effect = &quot;x1&quot;</code>
+のように1変数を指定すると、その変数に沿った予測値を描きます。<code>effect = &quot;x1:x2&quot;</code>
+のように交互作用を指定すると、<code>x2</code> の代表値ごとに
+<code>x1</code> の効果を描きます。</p>
+<p>より詳しく交互作用を調べたい場合は、<code>simple_effects()</code>
+を使えます。</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">simple_effects</span>(fit_int, <span class="at">effect =</span> <span class="st">&quot;x1:x2&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>## Simple effects of x1 conditional on x2
+## 
+##   moderator  Estimate  Lower 95%  Upper 95%
+##     -1.00       0.314      0.102      0.529
+##      0.00       0.468      0.289      0.650
+##      1.00       0.623      0.372      0.882</code></pre>
+<p>固定効果の事後分布や係数の概観には、通常のプロット関数も使えます。</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">plot_forest</span>(fit_int, <span class="at">pars =</span> <span class="st">&quot;b&quot;</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="fu">plot_dens</span>(fit_int, <span class="at">pars =</span> <span class="st">&quot;b&quot;</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="family-の選び方" class="section level1">
+<h1>4. family の選び方</h1>
+<p><code>rtmb_glmer()</code> では、目的変数の分布を <code>family</code>
+で指定します。</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><code>family</code></th>
+<th>主なリンク</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>&quot;gaussian&quot;</code></td>
+<td>identity</td>
+<td>連続量、通常の線形混合モデル</td>
+</tr>
+<tr class="even">
+<td><code>&quot;lognormal&quot;</code></td>
+<td>log</td>
+<td>正の連続量、右に歪んだ分布</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;student_t&quot;</code></td>
+<td>identity</td>
+<td>外れ値に頑健な連続量モデル</td>
+</tr>
+<tr class="even">
+<td><code>&quot;gamma&quot;</code></td>
+<td>log</td>
+<td>正の連続量、ガンマ分布</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;bernoulli&quot;</code></td>
+<td>logit</td>
+<td>0/1 の2値データ</td>
+</tr>
+<tr class="even">
+<td><code>&quot;binomial&quot;</code></td>
+<td>logit</td>
+<td>成功数 / 試行数</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;poisson&quot;</code></td>
+<td>log</td>
+<td>カウントデータ</td>
+</tr>
+<tr class="even">
+<td><code>&quot;neg_binomial&quot;</code></td>
+<td>log</td>
+<td>過分散のあるカウントデータ</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;ordered&quot;</code></td>
+<td>logit</td>
+<td>順序カテゴリデータ</td>
+</tr>
+<tr class="even">
+<td><code>&quot;sequential&quot;</code></td>
+<td>logit</td>
+<td>sequential / continuation-ratio 型の順序カテゴリデータ</td>
+</tr>
+</tbody>
+</table>
+<p>2値データなら次のように書けます。</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>mdl_bin <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  y_bin <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;bernoulli&quot;</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>カウントデータでは、ポアソン分布や負の二項分布を使います。</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>mdl_count <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  count <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;neg_binomial&quot;</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="推定法の使い分け" class="section level1">
+<h1>5. 推定法の使い分け</h1>
+<div id="mcmc" class="section level2">
+<h2>MCMC</h2>
+<p>MCMC は、BayesRTMB で事後分布を直接調べる中心的な推定法です。</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="at">sampling =</span> <span class="dv">1000</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">warmup =</span> <span class="dv">1000</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>)</span></code></pre></div>
+<p>係数の不確実性、事後予測、Bayes factor、bridge sampling
+を使う分析では、MCMC の結果を基準に考えるのが自然です。</p>
+</div>
+<div id="map" class="section level2">
+<h2>MAP</h2>
+<p>MAP 推定は、モデルをすばやく確認したい場合に便利です。</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">laplace =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>random effects を含む mixed model では、<code>laplace = TRUE</code>
+によってランダム効果を Laplace
+近似で周辺化できます。これは高速なモデル確認に向いています。</p>
+</div>
+<div id="vb" class="section level2">
+<h2>VB</h2>
+<p>変分推論は、MCMC より軽く近似的な事後分布を見たい場合に使えます。</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>fit_vb <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>()</span></code></pre></div>
+<p>VB
+は便利ですが近似推論です。最終的な区間推定やモデル比較では、必要に応じて
+MCMC と照合してください。</p>
+</div>
+<div id="classic" class="section level2">
+<h2>classic</h2>
+<p><code>classic()</code> は、<code>prior_flat()</code> の wrapper
+モデルを頻度主義的に確認するための推定経路です。</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a>fit_cl <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">classic</span>()</span></code></pre></div>
+<p>informative prior を含むモデルでは <code>classic()</code>
+は使いません。ベイズ推定として事前分布を入れる場合は、<code>sample()</code>、<code>optimize()</code>、<code>variational()</code>
+を使います。</p>
+</div>
+</div>
+<div id="prior-の設計" class="section level1">
+<h1>6. prior の設計</h1>
+<p><code>rtmb_glmer()</code> の prior は、<code>prior</code>
+引数で指定します。</p>
+<div id="prior_flat" class="section level2">
+<h2>prior_flat</h2>
+<p><code>prior_flat()</code> は、追加の prior density
+を置かない指定です。wrapper のデフォルトです。</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_flat</span>()</span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>classic()</code> が対象にするのは、原則として wrapper 由来かつ
+<code>prior_flat()</code> のモデルです。</p>
+</div>
+<div id="prior_normal" class="section level2">
+<h2>prior_normal</h2>
+<p>初心者が手動で指定しやすい基本 prior は <code>prior_normal()</code>
+です。</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>(</span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>    <span class="at">mu_sd =</span> <span class="dv">10</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>    <span class="at">b_sd =</span> <span class="dv">2</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a>    <span class="at">sigma_rate =</span> <span class="dv">1</span>,</span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a>    <span class="at">tau_rate =</span> <span class="dv">1</span></span>
+<span id="cb26-9"><a href="#cb26-9" tabindex="-1"></a>  )</span>
+<span id="cb26-10"><a href="#cb26-10" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>prior_normal()</code> は、固定効果に正規
+prior、標準偏差やランダム効果のスケールに指数 prior
+を置く、分かりやすい手動 prior
+です。まず事前分布の意味を理解したい場合は、<code>prior_normal()</code>
+から始めると見通しがよくなります。</p>
+</div>
+<div id="prior_weak" class="section level2">
+<h2>prior_weak</h2>
+<p><code>prior_weak()</code> は、目的変数の範囲 <code>y_range</code>
+を使って、データの尺度に合った弱情報 prior を作ります。</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_weak</span>(),</span>
+<span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a>  <span class="at">y_range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>prior_weak()</code>
+の考え方は、目的変数の取りうる範囲から「切片や平均がどの程度の大きさになりうるか」「説明変数の効果がどの程度なら大きすぎないか」を決めることです。</p>
+<p>連続量モデルでは、たとえば <code>y_range = c(1, 5)</code>
+と指定すると、範囲の半分や中心値を使って、切片・平均、回帰係数、残差標準偏差、ランダム効果のスケールに対する
+prior が自動的に構成されます。固定効果の prior scale
+は、説明変数の標準偏差も考慮して調整されます。</p>
+<p>2値・カウント・順序カテゴリモデルでは、応答の尺度に合わせて、線形予測子上で極端になりすぎない弱情報
+prior
+が使われます。細かい値を手で決めるよりも、まず穏当な出発点を置きたい場合に便利です。</p>
+<p>また、<code>y_range</code> を指定し、<code>prior</code> が
+<code>prior_flat()</code> のままなら、内部で <code>prior_weak()</code>
+に切り替わります。</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a>  <span class="at">y_range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>)</span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a>)</span></code></pre></div>
+<p>bridge sampling や Bayes factor
+のようなモデル比較では、事前分布の設計が結果に直接影響します。<code>prior_flat()</code>
+は頻度主義的な確認には便利ですが、ベイズ的なモデル比較の prior
+としては慎重に扱う必要があります。</p>
+<p>そのような場合、<code>prior_weak()</code>
+は「データの尺度に合った穏当な事前分布」を置くための出発点になります。万能な自動
+prior ではありませんが、<code>y_range</code>
+によって目的変数の理論的な範囲を明示できるため、bridge sampling
+を使う分析では有用です。</p>
+</div>
+<div id="prior_rhs-と-prior_ssp" class="section level2">
+<h2>prior_rhs と prior_ssp</h2>
+<p>固定効果が多い場合は、正則化 prior を使えます。</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>mdl_rhs <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>  y <span class="sc">~</span> . <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_rhs</span>(),</span>
+<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a>  <span class="at">y_range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>)</span>
+<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a>)</span>
+<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a></span>
+<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a>mdl_ssp <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb29-9"><a href="#cb29-9" tabindex="-1"></a>  y <span class="sc">~</span> . <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb29-10"><a href="#cb29-10" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb29-11"><a href="#cb29-11" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_ssp</span>(),</span>
+<span id="cb29-12"><a href="#cb29-12" tabindex="-1"></a>  <span class="at">y_range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>)</span>
+<span id="cb29-13"><a href="#cb29-13" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>prior_rhs()</code> は regularized
+horseshoe、<code>prior_ssp()</code> は spike-and-slab prior
+です。どちらも係数が多いモデルで使います。正則化 prior
+を使うモデルでは、MCMC で事後分布を確認することを勧めます。</p>
+</div>
+<div id="prior_jzs" class="section level2">
+<h2>prior_jzs</h2>
+<p><code>prior_jzs()</code> は、JZS prior を使うための指定です。</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a>mdl_jzs <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb30-3"><a href="#cb30-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb30-4"><a href="#cb30-4" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_jzs</span>()</span>
+<span id="cb30-5"><a href="#cb30-5" tabindex="-1"></a>)</span></code></pre></div>
+<p>JZS prior は、効果量や回帰係数に Cauchy 型の広い prior
+を置く考え方で、Bayes factor の文脈でよく使われます。BayesRTMB
+では、特に <code>rtmb_ttest()</code> で JZS prior を使った Bayes factor
+を計算できます。</p>
+<p><code>rtmb_glmer()</code> でも <code>prior_jzs()</code>
+は指定できますが、通常の GLMM で最初に選ぶ prior というより、JZS prior
+に基づくモデル比較を明示的に行いたい場合の選択肢です。一般的な階層モデルでは、まず
+<code>prior_normal()</code> か <code>prior_weak()</code>
+から始めるほうが解釈しやすくなります。</p>
+</div>
+</div>
+<div id="順序カテゴリモデル" class="section level1">
+<h1>7. 順序カテゴリモデル</h1>
+<p>順序カテゴリデータには、<code>family = &quot;ordered&quot;</code> または
+<code>family = &quot;sequential&quot;</code> を使えます。</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>mdl_ord <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a>  rating <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb31-3"><a href="#cb31-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb31-4"><a href="#cb31-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;ordered&quot;</span>,</span>
+<span id="cb31-5"><a href="#cb31-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb31-6"><a href="#cb31-6" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>ordered</code> は通常の ordered logistic model
+です。<code>cutpoints</code>
+は順序制約を持つパラメータとして推定されます。</p>
+<p><code>sequential</code> は continuation-ratio / sequential logistic
+型の順序モデルです。</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a>mdl_seq <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>  rating <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb32-3"><a href="#cb32-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb32-4"><a href="#cb32-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;sequential&quot;</span>,</span>
+<span id="cb32-5"><a href="#cb32-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb32-6"><a href="#cb32-6" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>sequential</code>
+では、カテゴリ遷移ごとに異なる係数を持ちます。たとえばカテゴリが 1, 2,
+3, 4 の場合、<code>1-&gt;2</code>, <code>2-&gt;3</code>,
+<code>3-&gt;4</code>
+という遷移ラベルで係数が表示されます。これは、通常の
+<code>ordered</code> の cutpoints とは意味が異なります。</p>
+</div>
+<div id="異分散と残差相関" class="section level1">
+<h1>8. 異分散と残差相関</h1>
+<p>連続量モデルでは、残差分散が条件によって異なるモデルを書けます。</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a>mdl_sigma <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>  y <span class="sc">~</span> cond <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb33-4"><a href="#cb33-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" tabindex="-1"></a>  <span class="at">sigma_by =</span> <span class="st">&quot;cond&quot;</span>,</span>
+<span id="cb33-6"><a href="#cb33-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb33-7"><a href="#cb33-7" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>sigma_by</code>
+は、<code>gaussian</code>、<code>lognormal</code>、<code>student_t</code>
+のような連続 family で使えます。</p>
+<p>反復測定データでは、残差相関構造も指定できます。</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a>mdl_ar1 <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a>  y <span class="sc">~</span> time <span class="sc">+</span> cond,</span>
+<span id="cb34-3"><a href="#cb34-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb34-4"><a href="#cb34-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb34-5"><a href="#cb34-5" tabindex="-1"></a>  <span class="at">resid_corr =</span> <span class="st">&quot;ar1&quot;</span>,</span>
+<span id="cb34-6"><a href="#cb34-6" tabindex="-1"></a>  <span class="at">resid_time =</span> <span class="st">&quot;time&quot;</span>,</span>
+<span id="cb34-7"><a href="#cb34-7" tabindex="-1"></a>  <span class="at">resid_group =</span> <span class="st">&quot;id&quot;</span>,</span>
+<span id="cb34-8"><a href="#cb34-8" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb34-9"><a href="#cb34-9" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>resid_corr</code> には
+<code>&quot;ar1&quot;</code>、<code>&quot;cs&quot;</code>、<code>&quot;toep&quot;</code>、<code>&quot;un&quot;</code>
+を指定できます。現在、残差相関構造は Gaussian model 向けの機能です。</p>
+<p><code>resid_time</code>
+は、各相関ブロック内での時点やラグを表す変数です。一方、<code>resid_group</code>
+は、どの観測が同じ相関ブロックに属するかを表す変数です。たとえば反復測定データでは、<code>resid_group = &quot;id&quot;</code>
+によって個人ごとに残差相関行列を作り、その個人内で
+<code>resid_time = &quot;time&quot;</code> を使って AR(1) のラグを決めます。</p>
+<p>この例では、<code>id</code> 内の反復測定の相関を
+<code>resid_corr = &quot;ar1&quot;</code> で直接表現しているため、式には
+<code>(1 | id)</code> を入れていません。<code>(1 | id)</code> と
+<code>resid_corr</code>
+を同時に入れることもできますが、ランダム切片による個人差と残差相関による個人内相関を同時に推定することになり、データが少ない場合は冗長になったり識別が不安定になったりします。まずは、ランダム効果で表すモデルと、残差相関で表すモデルを分けて比較するのが分かりやすいです。</p>
+</div>
+<div id="分散分析lsmeans古典的-mixed-model-として使う" class="section level1">
+<h1>9. 分散分析・lsmeans・古典的 mixed model として使う</h1>
+<p>実験計画に近いデータで、分散分析表、推定周辺平均、ペア比較、平均のグラフを主に報告したい場合は、<code>rtmb_lmer()</code>
+から始めると分かりやすくなります。</p>
+<p>ここでは、パッケージに含まれる <code>training</code>
+データを使います。このデータは、社会的スキルについてのトレーニング効果を4時点で測定したワイド型データです。<code>a</code>
+はトレーニング条件で、<code>0</code> が統制群、<code>1</code>
+が介入群です。<code>b</code>
+はもともとのスキル判定を質的に分類した変数、<code>age</code>
+は年齢です。</p>
+<p><code>rtmb_lmer()</code>
+は、<code>rtmb_glmer(..., family = &quot;gaussian&quot;)</code>
+の便利な別名です。ワイド型の反復測定データは、左辺に
+<code>cbind()</code> を使い、<code>within = list(time = 4)</code>
+を指定すると、内部でロング型データとして扱われます。また、<code>factors =</code>
+で指定した変数は内部で factor 型として扱われます。</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a><span class="fu">data</span>(training)</span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" tabindex="-1"></a>mdl_aov <span class="ot">&lt;-</span> <span class="fu">rtmb_lmer</span>(</span>
+<span id="cb35-4"><a href="#cb35-4" tabindex="-1"></a>  <span class="fu">cbind</span>(time1, time2, time3, time4) <span class="sc">~</span> a <span class="sc">*</span> time <span class="sc">+</span> b <span class="sc">+</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> ID),</span>
+<span id="cb35-5"><a href="#cb35-5" tabindex="-1"></a>  <span class="at">data =</span> training,</span>
+<span id="cb35-6"><a href="#cb35-6" tabindex="-1"></a>  <span class="at">within =</span> <span class="fu">list</span>(<span class="at">time =</span> <span class="dv">4</span>),</span>
+<span id="cb35-7"><a href="#cb35-7" tabindex="-1"></a>  <span class="at">factors =</span> <span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;time&quot;</span>),</span>
+<span id="cb35-8"><a href="#cb35-8" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_flat</span>()</span>
+<span id="cb35-9"><a href="#cb35-9" tabindex="-1"></a>)</span>
+<span id="cb35-10"><a href="#cb35-10" tabindex="-1"></a></span>
+<span id="cb35-11"><a href="#cb35-11" tabindex="-1"></a>fit_aov <span class="ot">&lt;-</span> mdl_aov<span class="sc">$</span><span class="fu">classic</span>()</span></code></pre></div>
+<p><code>prior_flat()</code> の wrapper モデルに対して
+<code>classic()</code> を呼ぶと、頻度主義的な mixed model
+として確認できます。分散分析表は <code>anova()</code>
+で表示できます。</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a><span class="fu">anova</span>(fit_aov)</span></code></pre></div>
+<pre class="text"><code>## ANOVA Table (Wald F-tests)
+##        num_df den_df F value   Pr(&gt;F)
+## a           1      7  8.4229 0.022913
+## time        3     30  4.8719 0.007062
+## b           2      7  3.3997 0.092967
+## age         1      7  2.4916 0.158466
+## a:time      3     30  9.6016 0.000133</code></pre>
+<p>推定周辺平均は <code>lsmeans()</code> で計算できます。</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a>emm <span class="ot">&lt;-</span> <span class="fu">lsmeans</span>(fit_aov, <span class="at">specs =</span> <span class="st">&quot;a&quot;</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" tabindex="-1"></a>emm</span></code></pre></div>
+<pre class="text"><code>##     estimate Std. Error df Lower 95% Upper 95%
+## a=0  4.06011    6.23673  7 -10.68740  18.80763
+## a=1  5.54280    6.23673  7  -9.20471  20.29031</code></pre>
+<p>交互作用がある場合は、条件ごとの平均や単純効果を見ることが重要です。</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a>emm_time <span class="ot">&lt;-</span> <span class="fu">lsmeans</span>(fit_aov, <span class="at">specs =</span> <span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;time&quot;</span>))</span>
+<span id="cb40-2"><a href="#cb40-2" tabindex="-1"></a>emm_time</span>
+<span id="cb40-3"><a href="#cb40-3" tabindex="-1"></a><span class="fu">plot</span>(emm_time)</span></code></pre></div>
+<pre class="text"><code>##            estimate Std. Error df Lower 95% Upper 95%
+## a=0:time=1  4.36303    6.24966  7 -10.41508  19.14114
+## a=1:time=1  3.22864    6.24966  7 -11.54947  18.00674
+## a=0:time=2  4.19970    6.24966  7 -10.57841  18.97780
+## a=1:time=2  4.76030    6.24966  7 -10.01780  19.53841
+## a=0:time=3  3.68303    6.24966  7 -11.09508  18.46114
+## a=1:time=3  6.43364    6.24966  7  -8.34447  21.21174
+## a=0:time=4  3.99470    6.27546  7 -10.84441  18.83380
+## a=1:time=4  7.74864    6.27546  7  -7.09047  22.58774</code></pre>
+<p>モデル比較には
+<code>anova(fit1, fit2)</code>、<code>AIC()</code>、<code>BIC()</code>
+も使えます。</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" tabindex="-1"></a>fit0 <span class="ot">&lt;-</span> <span class="fu">rtmb_lmer</span>(</span>
+<span id="cb42-2"><a href="#cb42-2" tabindex="-1"></a>  <span class="fu">cbind</span>(time1, time2, time3, time4) <span class="sc">~</span> a <span class="sc">+</span> time <span class="sc">+</span> b <span class="sc">+</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> ID),</span>
+<span id="cb42-3"><a href="#cb42-3" tabindex="-1"></a>  <span class="at">data =</span> training,</span>
+<span id="cb42-4"><a href="#cb42-4" tabindex="-1"></a>  <span class="at">within =</span> <span class="fu">list</span>(<span class="at">time =</span> <span class="dv">4</span>),</span>
+<span id="cb42-5"><a href="#cb42-5" tabindex="-1"></a>  <span class="at">factors =</span> <span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;time&quot;</span>),</span>
+<span id="cb42-6"><a href="#cb42-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_flat</span>()</span>
+<span id="cb42-7"><a href="#cb42-7" tabindex="-1"></a>)<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb42-8"><a href="#cb42-8" tabindex="-1"></a></span>
+<span id="cb42-9"><a href="#cb42-9" tabindex="-1"></a>fit1 <span class="ot">&lt;-</span> <span class="fu">rtmb_lmer</span>(</span>
+<span id="cb42-10"><a href="#cb42-10" tabindex="-1"></a>  <span class="fu">cbind</span>(time1, time2, time3, time4) <span class="sc">~</span> a <span class="sc">*</span> time <span class="sc">+</span> b <span class="sc">+</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> ID),</span>
+<span id="cb42-11"><a href="#cb42-11" tabindex="-1"></a>  <span class="at">data =</span> training,</span>
+<span id="cb42-12"><a href="#cb42-12" tabindex="-1"></a>  <span class="at">within =</span> <span class="fu">list</span>(<span class="at">time =</span> <span class="dv">4</span>),</span>
+<span id="cb42-13"><a href="#cb42-13" tabindex="-1"></a>  <span class="at">factors =</span> <span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;time&quot;</span>),</span>
+<span id="cb42-14"><a href="#cb42-14" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_flat</span>()</span>
+<span id="cb42-15"><a href="#cb42-15" tabindex="-1"></a>)<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb42-16"><a href="#cb42-16" tabindex="-1"></a></span>
+<span id="cb42-17"><a href="#cb42-17" tabindex="-1"></a><span class="fu">anova</span>(fit0, fit1)</span>
+<span id="cb42-18"><a href="#cb42-18" tabindex="-1"></a><span class="fu">AIC</span>(fit0, fit1)</span>
+<span id="cb42-19"><a href="#cb42-19" tabindex="-1"></a><span class="fu">BIC</span>(fit0, fit1)</span></code></pre></div>
+<pre class="text"><code>## Likelihood Ratio Tests
+##  Model Df  logLik   AIC    BIC  Chisq Chi Df Pr(&gt;Chisq)
+##   fit0 10 -88.298 196.6 215.31     NA     NA         NA
+##   fit1 13 -77.250 180.5 204.82 22.096      3 6.2287e-05
+##
+## AIC(fit0, fit1)
+## [1] 196.5955
+##
+## BIC(fit0, fit1)
+## [1] 215.3075</code></pre>
+<p>ここでの <code>classic()</code> は、ベイズ推定ではなく、BayesRTMB
+のモデル表現を頻度主義的な分析として使うための経路です。ベイズ的に不確実性を評価したい場合は、同じモデルを
+<code>sample()</code> で推定します。</p>
+</div>
+<div id="print_code-で内部モデルを見る" class="section level1">
+<h1>10. print_code() で内部モデルを見る</h1>
+<p><code>rtmb_glmer()</code> が作るモデルは、<code>print_code()</code>
+で確認できます。</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" tabindex="-1"></a>mdl<span class="sc">$</span><span class="fu">print_code</span>()</span></code></pre></div>
+<p>現在の BayesRTMB では、生成される <code>model</code>
+ブロックはできるだけ sampling syntax を使う方針です。</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">normal</span>(eta, sigma)</span>
+<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a>r_re <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span></code></pre></div>
+<p><code>setup</code>
+には、モデルを再現するために必要な前処理が表示されます。ラッパー関数の中でこっそりデータを加工するのではなく、ユーザーが
+<code>rtmb_code()</code>
+として読み直せる形にすることを重視しています。</p>
+<p><code>rtmb_glmer()</code> が作る <code>RTMB_Model</code>
+には、wrapper metadata も保存されます。特に
+<code>extra$source</code>、<code>extra$prior_type</code>、<code>extra$marginal</code>
+は、<code>classic()</code> や <code>optimize(marginal = &quot;auto&quot;)</code>
+の動作に関わります。</p>
+</div>
+<div id="実践上の注意点" class="section level1">
+<h1>11. 実践上の注意点</h1>
+<ul>
+<li>最終的な不確実性を見たい場合は、まず MCMC を考えます。</li>
+<li><code>optimize(laplace = TRUE)</code> は、mixed model
+の高速な確認に向いています。</li>
+<li><code>variational()</code> は便利な近似推論ですが、必要に応じて MCMC
+と照合してください。</li>
+<li><code>classic()</code> は wrapper 由来かつ <code>prior_flat()</code>
+のモデルを頻度主義的に確認するための経路です。</li>
+<li>bridge sampling や Bayes factor では prior
+の影響が大きいため、<code>prior_weak()</code> や明示的な
+<code>prior_normal()</code>
+など、目的に合った事前分布を設計してください。</li>
+<li><code>family = &quot;sequential&quot;</code> は、通常の ordered logistic
+とは異なり、カテゴリ遷移ごとに異なる係数を持ちます。</li>
+<li><code>sigma_by</code> と <code>resid_corr</code>
+は、連続量モデル、特に Gaussian 系のモデルで使う機能です。</li>
+</ul>
+<p>より低水準のモデルコードを書きたい場合は、<a href="ja-writing_models.html">モデルコードの書き方</a>
+を参照してください。<code>rtmb_glmer()</code>
+が内部で何をしているかをさらに詳しく知りたい場合は、<a href="ja-rtmb_internals.html">BayesRTMB の内部構造</a>
+も参考になります。</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>モデルの書き方</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">モデルの書き方</h1>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#最小モデル" id="toc-最小モデル">最小モデル</a></li>
+<li><a href="#rtmb_code-の構造" id="toc-rtmb_code-の構造">rtmb_code
+の構造</a>
+<ul>
+<li><a href="#setup" id="toc-setup">setup</a></li>
+<li><a href="#parameters" id="toc-parameters">parameters</a></li>
+<li><a href="#transform" id="toc-transform">transform</a></li>
+<li><a href="#model" id="toc-model">model</a></li>
+<li><a href="#generate" id="toc-generate">generate</a></li>
+</ul></li>
+<li><a href="#回帰モデル" id="toc-回帰モデル">回帰モデル</a>
+<ul>
+<li><a href="#中心化した回帰モデル" id="toc-中心化した回帰モデル">中心化した回帰モデル</a></li>
+</ul></li>
+<li><a href="#事前分布を書く" id="toc-事前分布を書く">事前分布を書く</a></li>
+<li><a href="#制約つきパラメータ" id="toc-制約つきパラメータ">制約つきパラメータ</a></li>
+<li><a href="#階層モデル" id="toc-階層モデル">階層モデル</a></li>
+<li><a href="#順序モデル" id="toc-順序モデル">順序モデル</a></li>
+<li><a href="#混合分布モデル" id="toc-混合分布モデル">混合分布モデル</a></li>
+<li><a href="#よくある注意点" id="toc-よくある注意点">よくある注意点</a>
+<ul>
+<li><a href="#data.frame-と-matrix" id="toc-data.frame-と-matrix">data.frame と matrix</a></li>
+<li><a href="#model-ブロックを複雑にしすぎない" id="toc-model-ブロックを複雑にしすぎない">model
+ブロックを複雑にしすぎない</a></li>
+<li><a href="#ad型に対する-if-文" id="toc-ad型に対する-if-文">AD型に対する if 文</a></li>
+<li><a href="#初期値" id="toc-初期値">初期値</a></li>
+<li><a href="#random-true" id="toc-random-true">random = TRUE</a></li>
+</ul></li>
+<li><a href="#次に読む記事" id="toc-次に読む記事">次に読む記事</a></li>
+</ul>
+</div>
+
+<p>BayesRTMB では、<code>rtmb_lm()</code> や <code>rtmb_glmer()</code>
+のようなラッパー関数を使うだけでなく、<code>rtmb_code()</code>
+を使って自分でモデルを書くことができます。</p>
+<p>自分でモデルを書くと、既存のラッパー関数では表現しにくい潜在変数モデル、混合分布モデル、独自の階層モデル、生成量を含むモデルなどを柔軟に定義できます。</p>
+<p>このページでは、最小の二項モデルから始めて、回帰モデル、階層モデル、順序モデル、混合分布モデルへ進みながら、<code>rtmb_code()</code>
+の書き方を説明します。</p>
+<div id="最小モデル" class="section level1">
+<h1>最小モデル</h1>
+<p>最初に、もっとも単純な二項分布モデルを書いてみます。10回の試行のうち6回成功した、というデータを考えます。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(BayesRTMB)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>Trial <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>Y <span class="ot">&lt;-</span> <span class="dv">6</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>data_list <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  <span class="at">Trial =</span> Trial,</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  <span class="at">Y =</span> Y</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>モデルは次のように書けます。</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>code_binom <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>    theta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>, <span class="at">upper =</span> <span class="dv">1</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  },</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">binomial</span>(Trial, theta)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>    theta <span class="sc">~</span> <span class="fu">beta</span>(<span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  }</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>ここで、<code>theta</code> は成功確率です。確率なので
+<code>lower = 0, upper = 1</code> という制約をつけています。</p>
+<p><code>model</code>
+ブロックには、データの尤度とパラメータの事前分布を書きます。</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">binomial</span>(Trial, theta)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>theta <span class="sc">~</span> <span class="fu">beta</span>(<span class="dv">1</span>, <span class="dv">1</span>)</span></code></pre></div>
+<p>このように、BayesRTMB では Stan
+に近い感覚で、確率モデルをそのまま書くことができます。</p>
+<p>モデルオブジェクトは <code>rtmb_model()</code> で作成します。</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>mdl_binom <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(<span class="at">data =</span> data_list, <span class="at">code =</span> code_binom)</span></code></pre></div>
+<p>作成したモデルに対して、MAP推定、MCMC、変分推論を実行できます。</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>fit_map  <span class="ot">&lt;-</span> mdl_binom<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl_binom<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>fit_vb   <span class="ot">&lt;-</span> mdl_binom<span class="sc">$</span><span class="fu">variational</span>()</span></code></pre></div>
+</div>
+<div id="rtmb_code-の構造" class="section level1">
+<h1>rtmb_code の構造</h1>
+<p><code>rtmb_code()</code>
+は、いくつかのブロックに分けてモデルを書きます。</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>code <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    <span class="co"># データから定数や前処理済みオブジェクトを作る</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  },</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>    <span class="co"># 推定するパラメータを宣言する</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  },</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>    <span class="co"># パラメータから派生量を作る</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>  },</span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>    <span class="co"># 尤度と事前分布を書く</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>  },</span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>  <span class="at">generate =</span> {</span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>    <span class="co"># 推定後に計算したい量を書く</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>  }</span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>)</span></code></pre></div>
+<p>すべてのブロックが必須ではありません。最小モデルでは
+<code>parameters</code> と <code>model</code>
+だけでも十分です。ただし、モデルが少し複雑になると、<code>setup</code>、<code>transform</code>、<code>generate</code>
+を使い分けることで、コードが読みやすくなります。</p>
+<div id="setup" class="section level2">
+<h2>setup</h2>
+<p><code>setup</code>
+は、モデル評価の前に一度だけ実行される前処理ブロックです。データの次元、平均、標準偏差、デザイン行列など、推定中に何度も変わらないものをここで作ります。</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>setup <span class="ot">=</span> {</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  X_mean <span class="ot">&lt;-</span> <span class="fu">apply</span>(X, <span class="dv">2</span>, mean)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  X_sd <span class="ot">&lt;-</span> <span class="fu">apply</span>(X, <span class="dv">2</span>, sd)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>}</span></code></pre></div>
+<p><code>setup</code> に書くとよいものは、主に次のようなものです。</p>
+<ul>
+<li><code>N</code>, <code>P</code>, <code>K</code> などの次元</li>
+<li>デザイン行列やグループ番号</li>
+<li>中心化済みの説明変数</li>
+<li>事前分布のスケール</li>
+<li>データから計算される十分統計量</li>
+</ul>
+<p>最近の BayesRTMB では、<code>model</code>
+ブロックをできるだけ読みやすくするために、前処理は <code>setup</code>
+に寄せる書き方を推奨しています。</p>
+</div>
+<div id="parameters" class="section level2">
+<h2>parameters</h2>
+<p><code>parameters</code>
+は、推定するパラメータを宣言するブロックです。<code>Dim()</code>
+を使って、次元や制約を指定します。</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>parameters <span class="ot">=</span> {</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  alpha <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>}</span></code></pre></div>
+<p><code>Dim()</code> の基本は次のとおりです。</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">書き方</th>
+<th align="left">意味</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>Dim()</code></td>
+<td align="left">スカラー</td>
+</tr>
+<tr class="even">
+<td align="left"><code>Dim(P)</code></td>
+<td align="left">長さ <code>P</code> のベクトル</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>Dim(c(N, P))</code></td>
+<td align="left"><code>N x P</code> 行列</td>
+</tr>
+<tr class="even">
+<td align="left"><code>Dim(lower = 0)</code></td>
+<td align="left">正の値に制約</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>Dim(lower = 0, upper = 1)</code></td>
+<td align="left">0から1の範囲に制約</td>
+</tr>
+<tr class="even">
+<td align="left"><code>Dim(G, random = TRUE)</code></td>
+<td align="left">ランダム効果として扱う</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="transform" class="section level2">
+<h2>transform</h2>
+<p><code>transform</code>
+は、パラメータやデータから派生量を作るブロックです。線形予測子、平均構造、標準化効果量、相関行列などを書く場所です。</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>transform <span class="ot">=</span> {</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  mu <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>}</span></code></pre></div>
+<p><code>transform</code> で作った量は、<code>model</code>
+ブロックの中で使えます。また、推定後の出力にも含まれます。MAP推定では、デルタ法によって標準誤差や信頼区間も計算されます。</p>
+<p>ただし、<code>transform</code>
+ブロックの中で作ったすべての途中変数を保存したいとは限りません。その場合は、<code>report()</code>
+を使って、明示的に保存したい量だけを指定できます。</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>transform <span class="ot">=</span> {</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  eta <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  mu <span class="ot">&lt;-</span> <span class="fu">inv_logit</span>(eta)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="fu">report</span>(mu, beta)</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>}</span></code></pre></div>
+<p>この例では、<code>eta</code>
+は計算途中で使うだけなので出力には含めず、<code>mu</code> と
+<code>beta</code> だけを保存対象にしています。</p>
+</div>
+<div id="model" class="section level2">
+<h2>model</h2>
+<p><code>model</code> は、尤度と事前分布を書くブロックです。</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  alpha <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>}</span></code></pre></div>
+<p><code>~</code>
+の左側に確率変数、右側に分布を書きます。<code>Y ~ normal(mu, sigma)</code>
+は、観測値 <code>Y</code> が平均 <code>mu</code>、標準偏差
+<code>sigma</code> の正規分布に従う、という意味です。</p>
+<p>同じ内容は、対数確率を明示的に足し合わせる形でも書けます。</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  lp <span class="ot">&lt;-</span> lp <span class="sc">+</span> <span class="fu">normal_lpdf</span>(Y, mu, sigma)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  lp <span class="ot">&lt;-</span> lp <span class="sc">+</span> <span class="fu">normal_lpdf</span>(alpha, <span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  lp <span class="ot">&lt;-</span> lp <span class="sc">+</span> <span class="fu">normal_lpdf</span>(beta, <span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  lp <span class="ot">&lt;-</span> lp <span class="sc">+</span> <span class="fu">exponential_lpdf</span>(sigma, <span class="dv">1</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>}</span></code></pre></div>
+<p>つまり、<code>Y ~ normal(mu, sigma)</code> と
+<code>lp &lt;- lp + normal_lpdf(Y, mu, sigma)</code>
+は、同じモデルを表す2つの書き方です。通常は <code>~</code>
+を使ったほうが読みやすいですが、特殊な尤度を自分で組み立てたいときには
+<code>lp &lt;- lp + ..._lpdf(...)</code>
+の形が便利です。Stanと違って、<code>BayesRTMB</code>パッケージでは<code>Y ~ normal(mu, sigma)</code>と書いても正規化定数は計算されます。なのでbridgesamplingをしたいときでも<code>~</code>を使った記法を使って問題ありません。</p>
+<p>ただし、<code>lp</code>
+は対数確率を足し合わせるための予約語です。<code>parameters</code>
+ブロックで <code>lp = Dim()</code>
+のように宣言したり、一般の作業用変数として使ったりしないでください。</p>
+</div>
+<div id="generate" class="section level2">
+<h2>generate</h2>
+<p><code>generate</code>
+は、推定後に計算したい量を書くブロックです。事後予測チェックや予測値の生成に便利です。</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>generate <span class="ot">=</span> {</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  Y_rep <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">length</span>(Y), mu, sigma)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>}</span></code></pre></div>
+<p><code>generate</code>
+に書いた計算は、尤度評価には入りません。そのため、重い計算を書いても推定速度には直接影響しません。</p>
+<p><code>generate</code>
+ブロックは、事後予測チェックや予測値の計算に便利です。</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>code_ppc <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>    N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>    P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  },</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>    alpha <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>  },</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>  },</span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>    alpha <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>    beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a>  },</span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a>  <span class="at">generate =</span> {</span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a>    Y_rep <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N, mu, sigma)</span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a>    residual <span class="ot">&lt;-</span> Y <span class="sc">-</span> mu</span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a>  }</span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>Y_rep</code>
+は事後予測分布からの複製データ、<code>residual</code>
+は残差です。これらは推定後に取り出して、モデル診断に使えます。</p>
+<p>モデル定義時に書き忘れた場合でも、推定後に
+<code>generated_quantities()</code> で追加できます。</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>new_generate <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">generate =</span> {</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>    abs_residual <span class="ot">&lt;-</span> <span class="fu">abs</span>(Y <span class="sc">-</span> mu)</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  }</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>fit_reg <span class="ot">&lt;-</span> mdl_reg<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>fit_reg<span class="sc">$</span><span class="fu">generated_quantities</span>(new_generate)</span></code></pre></div>
+</div>
+</div>
+<div id="回帰モデル" class="section level1">
+<h1>回帰モデル</h1>
+<p>次に、回帰モデルを書きます。ここでは <code>debate</code>
+データを使い、満足度 <code>sat</code> を発言量
+<code>talk</code>、パフォーマンス <code>perf</code>、スキル
+<code>skill</code> で説明します。</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">data</span>(debate)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>Y <span class="ot">&lt;-</span> debate<span class="sc">$</span>sat</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>X_names <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;talk&quot;</span>, <span class="st">&quot;perf&quot;</span>, <span class="st">&quot;skill&quot;</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(debate[, X_names])</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>data_reg <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a>  <span class="at">Y =</span> Y,</span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a>  <span class="at">X =</span> X</span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>X</code> は <code>as.matrix()</code>
+で数値行列にしておくのが安全です。<code>data.frame</code> のまま
+<code>%*%</code>
+を使うと、列の型によってエラーになることがあります。</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>code_reg <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>    N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>    P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>  },</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>    alpha <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a>  },</span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a>  },</span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a>    alpha <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a>    beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a>  }</span>
+<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a>)</span></code></pre></div>
+<p>このモデルでは、<code>beta &lt;- Dim(P)</code>
+として、説明変数の数に応じた回帰係数ベクトルを宣言しています。</p>
+<p><code>par_names</code> を使うと、出力の名前を読みやすくできます。</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>mdl_reg <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="at">data =</span> data_reg,</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="at">code =</span> code_reg,</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="at">par_names =</span> <span class="fu">list</span>(<span class="at">beta =</span> X_names)</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>)</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>mdl_reg<span class="sc">$</span><span class="fu">optimize</span>()</span></code></pre></div>
+<p><code>beta[1]</code>, <code>beta[2]</code>
+ではなく、<code>beta[talk]</code>, <code>beta[perf]</code>,
+<code>beta[skill]</code> のように表示されます。</p>
+<div id="中心化した回帰モデル" class="section level2">
+<h2>中心化した回帰モデル</h2>
+<p>回帰モデルでは、説明変数を中心化しておくと、切片の推定が安定しやすくなります。切片が「説明変数がすべて0のときの平均」ではなく、「説明変数が平均的な値のときの平均」に近い意味を持つためです。</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>data_reg2 <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  <span class="at">Y =</span> debate<span class="sc">$</span>sat,</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="at">X =</span> <span class="fu">as.matrix</span>(debate[, <span class="fu">c</span>(<span class="st">&quot;talk&quot;</span>, <span class="st">&quot;perf&quot;</span>, <span class="st">&quot;skill&quot;</span>)])</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>)</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>code_reg2 <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a>    N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>    P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a>    X_mean <span class="ot">&lt;-</span> <span class="fu">apply</span>(X, <span class="dv">2</span>, mean)</span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a>    X_c <span class="ot">&lt;-</span> X <span class="sc">-</span> <span class="fu">rep</span>(<span class="dv">1</span>, N) <span class="sc">%*%</span> <span class="fu">t</span>(X_mean)</span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a>  },</span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a>    alpha_c <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a>  },</span>
+<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb19-19"><a href="#cb19-19" tabindex="-1"></a>    alpha <span class="ot">&lt;-</span> alpha_c <span class="sc">-</span> <span class="fu">sum</span>(X_mean <span class="sc">*</span> beta)</span>
+<span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> alpha_c <span class="sc">+</span> X_c <span class="sc">%*%</span> beta</span>
+<span id="cb19-21"><a href="#cb19-21" tabindex="-1"></a>  },</span>
+<span id="cb19-22"><a href="#cb19-22" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb19-23"><a href="#cb19-23" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb19-24"><a href="#cb19-24" tabindex="-1"></a>    alpha_c <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb19-25"><a href="#cb19-25" tabindex="-1"></a>    beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb19-26"><a href="#cb19-26" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb19-27"><a href="#cb19-27" tabindex="-1"></a>  },</span>
+<span id="cb19-28"><a href="#cb19-28" tabindex="-1"></a>  <span class="at">generate =</span> {</span>
+<span id="cb19-29"><a href="#cb19-29" tabindex="-1"></a>    Y_rep <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">length</span>(Y), mu, sigma)</span>
+<span id="cb19-30"><a href="#cb19-30" tabindex="-1"></a>  }</span>
+<span id="cb19-31"><a href="#cb19-31" tabindex="-1"></a>)</span></code></pre></div>
+<p>ここでは、<code>setup</code> で中心化済みの <code>X_c</code>
+を作っています。<code>alpha_c</code>
+は中心化後の切片です。<code>transform</code> では、元の尺度での切片
+<code>alpha</code> も計算しています。</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>alpha <span class="ot">&lt;-</span> alpha_c <span class="sc">-</span> <span class="fu">sum</span>(X_mean <span class="sc">*</span> beta)</span></code></pre></div>
+<p>このようにしておくと、推定では安定しやすい中心化切片
+<code>alpha_c</code> を使いながら、必要に応じて元の尺度での切片
+<code>alpha</code> も確認できます。</p>
+</div>
+</div>
+<div id="事前分布を書く" class="section level1">
+<h1>事前分布を書く</h1>
+<p>自分で <code>rtmb_code()</code> を書く場合、事前分布は
+<code>model</code> ブロックに明示的に書きます。</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  alpha <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>  beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>  sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a>}</span></code></pre></div>
+<p>基本的な考え方は次のとおりです。</p>
+<ul>
+<li>位置パラメータには <code>normal(0, scale)</code>
+を使うことが多い</li>
+<li>正のスケールパラメータには <code>exponential(rate)</code> や
+<code>gamma()</code> を使う</li>
+<li>確率パラメータには <code>beta(a, b)</code> を使う</li>
+<li>制約と事前分布のサポートを合わせる</li>
+</ul>
+<p>たとえば、<code>sigma</code> は正の値なので、宣言では
+<code>Dim(lower = 0)</code> とし、事前分布も <code>exponential()</code>
+のような正の分布を使います。</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>parameters <span class="ot">=</span> {</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>}</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>  sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="制約つきパラメータ" class="section level1">
+<h1>制約つきパラメータ</h1>
+<p><code>Dim()</code> の <code>type</code>
+を使うと、特殊な制約を持つパラメータを定義できます。</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">型</th>
+<th align="left">使い道</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>type = &quot;ordered&quot;</code></td>
+<td align="left">昇順に並ぶカットポイント</td>
+</tr>
+<tr class="even">
+<td align="left"><code>type = &quot;simplex&quot;</code></td>
+<td align="left">混合率やカテゴリ確率</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>type = &quot;centered&quot;</code></td>
+<td align="left">和が0になる効果</td>
+</tr>
+<tr class="even">
+<td align="left"><code>type = &quot;CF_corr&quot;</code></td>
+<td align="left">相関行列のコレスキー因子</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>type = &quot;centered_tri&quot;</code></td>
+<td align="left">識別制約つきの座標行列</td>
+</tr>
+</tbody>
+</table>
+<p>たとえば、順序ロジスティックモデルでは、カットポイントが昇順である必要があります。</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>parameters <span class="ot">=</span> {</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>  cutpoints <span class="ot">&lt;-</span> <span class="fu">Dim</span>(K <span class="sc">-</span> <span class="dv">1</span>, <span class="at">type =</span> <span class="st">&quot;ordered&quot;</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>}</span></code></pre></div>
+<p>混合分布モデルの混合率には、和が1になる正のベクトルが必要です。</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a>parameters <span class="ot">=</span> {</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>  theta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(K, <span class="at">type =</span> <span class="st">&quot;simplex&quot;</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="階層モデル" class="section level1">
+<h1>階層モデル</h1>
+<p>階層モデルでは、ランダム効果を <code>random = TRUE</code>
+として宣言します。</p>
+<p>ここでは、グループごとに切片が異なる線形モデルを書きます。</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>Y <span class="ot">&lt;-</span> debate<span class="sc">$</span>sat</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>X_names <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;talk&quot;</span>, <span class="st">&quot;perf&quot;</span>, <span class="st">&quot;skill&quot;</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(debate[, X_names])</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>group <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">as.factor</span>(debate<span class="sc">$</span>group))</span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>G <span class="ot">&lt;-</span> <span class="fu">length</span>(<span class="fu">unique</span>(group))</span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a>data_hlm <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>  <span class="at">Y =</span> Y,</span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a>  <span class="at">X =</span> X,</span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>  <span class="at">group =</span> group,</span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a>  <span class="at">G =</span> G</span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>code_hlm <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>    N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>    P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>  },</span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a>    alpha <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb26-9"><a href="#cb26-9" tabindex="-1"></a>    tau <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb26-10"><a href="#cb26-10" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb26-11"><a href="#cb26-11" tabindex="-1"></a>    r <span class="ot">&lt;-</span> <span class="fu">Dim</span>(G, <span class="at">random =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-12"><a href="#cb26-12" tabindex="-1"></a>  },</span>
+<span id="cb26-13"><a href="#cb26-13" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb26-14"><a href="#cb26-14" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta <span class="sc">+</span> tau <span class="sc">*</span> r[group]</span>
+<span id="cb26-15"><a href="#cb26-15" tabindex="-1"></a>  },</span>
+<span id="cb26-16"><a href="#cb26-16" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb26-17"><a href="#cb26-17" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb26-18"><a href="#cb26-18" tabindex="-1"></a>    r <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb26-19"><a href="#cb26-19" tabindex="-1"></a>    alpha <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb26-20"><a href="#cb26-20" tabindex="-1"></a>    beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb26-21"><a href="#cb26-21" tabindex="-1"></a>    tau <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb26-22"><a href="#cb26-22" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb26-23"><a href="#cb26-23" tabindex="-1"></a>  }</span>
+<span id="cb26-24"><a href="#cb26-24" tabindex="-1"></a>)</span></code></pre></div>
+<p>ここでは、<code>r</code>
+が標準正規分布に従うランダム効果で、<code>tau</code>
+がその標準偏差です。</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a>r <span class="ot">&lt;-</span> <span class="fu">Dim</span>(G, <span class="at">random =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>r <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>mu <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta <span class="sc">+</span> tau <span class="sc">*</span> r[group]</span></code></pre></div>
+<p><code>random = TRUE</code>
+にしたパラメータは、MAP推定ではラプラス近似の対象になります。</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a>mdl_hlm <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>  <span class="at">data =</span> data_hlm,</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>  <span class="at">code =</span> code_hlm,</span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a>  <span class="at">par_names =</span> <span class="fu">list</span>(<span class="at">beta =</span> X_names)</span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a>)</span>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a>fit_hlm <span class="ot">&lt;-</span> mdl_hlm<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a>fit_hlm<span class="sc">$</span>random_effects</span></code></pre></div>
+<p>ランダム効果の推定値は、<code>random_effects</code>
+に保存されます。</p>
+</div>
+<div id="順序モデル" class="section level1">
+<h1>順序モデル</h1>
+<p>順序カテゴリカルデータには、<code>ordered_logistic()</code>
+を使えます。</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>Y <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(debate<span class="sc">$</span>sat)</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(debate[, <span class="fu">c</span>(<span class="st">&quot;talk&quot;</span>, <span class="st">&quot;perf&quot;</span>, <span class="st">&quot;skill&quot;</span>)])</span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>K <span class="ot">&lt;-</span> <span class="fu">length</span>(<span class="fu">sort</span>(<span class="fu">unique</span>(Y)))</span>
+<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a></span>
+<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a>data_ord <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a>  <span class="at">Y =</span> Y,</span>
+<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a>  <span class="at">X =</span> X,</span>
+<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a>  <span class="at">K =</span> K</span>
+<span id="cb29-9"><a href="#cb29-9" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a>code_ord <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb30-3"><a href="#cb30-3" tabindex="-1"></a>    P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb30-4"><a href="#cb30-4" tabindex="-1"></a>  },</span>
+<span id="cb30-5"><a href="#cb30-5" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb30-6"><a href="#cb30-6" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb30-7"><a href="#cb30-7" tabindex="-1"></a>    cutpoints <span class="ot">&lt;-</span> <span class="fu">Dim</span>(K <span class="sc">-</span> <span class="dv">1</span>, <span class="at">type =</span> <span class="st">&quot;ordered&quot;</span>)</span>
+<span id="cb30-8"><a href="#cb30-8" tabindex="-1"></a>  },</span>
+<span id="cb30-9"><a href="#cb30-9" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb30-10"><a href="#cb30-10" tabindex="-1"></a>    eta <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb30-11"><a href="#cb30-11" tabindex="-1"></a>  },</span>
+<span id="cb30-12"><a href="#cb30-12" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb30-13"><a href="#cb30-13" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">ordered_logistic</span>(eta, cutpoints)</span>
+<span id="cb30-14"><a href="#cb30-14" tabindex="-1"></a>    beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb30-15"><a href="#cb30-15" tabindex="-1"></a>    cutpoints <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">5</span>)</span>
+<span id="cb30-16"><a href="#cb30-16" tabindex="-1"></a>  }</span>
+<span id="cb30-17"><a href="#cb30-17" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>cutpoints</code>
+は必ず順序を持つ必要があるので、<code>type = &quot;ordered&quot;</code>
+としています。</p>
+<p>二値データやカウントデータでは、確率そのものではなく、線形予測子を直接受け取る分布が便利です。</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">bernoulli_logit</span>(eta)</span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">poisson</span>(<span class="fu">exp</span>(eta))</span></code></pre></div>
+<p>ロジットスケールや対数スケールで計算するため、数値的に安定しやすくなります。</p>
+</div>
+<div id="混合分布モデル" class="section level1">
+<h1>混合分布モデル</h1>
+<p>混合分布モデルは、制約つきパラメータと複数初期値を使うモデリングのいい例です。</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">300</span></span>
+<span id="cb32-3"><a href="#cb32-3" tabindex="-1"></a>K <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb32-4"><a href="#cb32-4" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" tabindex="-1"></a>theta_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.3</span>, <span class="fl">0.2</span>, <span class="fl">0.5</span>)</span>
+<span id="cb32-6"><a href="#cb32-6" tabindex="-1"></a>mu_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">3</span>, <span class="dv">0</span>, <span class="dv">4</span>)</span>
+<span id="cb32-7"><a href="#cb32-7" tabindex="-1"></a>sigma_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.6</span>, <span class="fl">1.0</span>, <span class="fl">0.8</span>)</span>
+<span id="cb32-8"><a href="#cb32-8" tabindex="-1"></a></span>
+<span id="cb32-9"><a href="#cb32-9" tabindex="-1"></a>z <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">seq_len</span>(K), <span class="at">size =</span> N, <span class="at">replace =</span> <span class="cn">TRUE</span>, <span class="at">prob =</span> theta_true)</span>
+<span id="cb32-10"><a href="#cb32-10" tabindex="-1"></a>Y <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N, mu_true[z], sigma_true[z])</span>
+<span id="cb32-11"><a href="#cb32-11" tabindex="-1"></a></span>
+<span id="cb32-12"><a href="#cb32-12" tabindex="-1"></a>data_mix <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb32-13"><a href="#cb32-13" tabindex="-1"></a>  <span class="at">Y =</span> Y,</span>
+<span id="cb32-14"><a href="#cb32-14" tabindex="-1"></a>  <span class="at">K =</span> K</span>
+<span id="cb32-15"><a href="#cb32-15" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a>code_mix <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a>    theta <span class="ot">&lt;-</span> <span class="fu">Dim</span>(K, <span class="at">type =</span> <span class="st">&quot;simplex&quot;</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> <span class="fu">Dim</span>(K)</span>
+<span id="cb33-5"><a href="#cb33-5" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(K, <span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" tabindex="-1"></a>  },</span>
+<span id="cb33-7"><a href="#cb33-7" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb33-8"><a href="#cb33-8" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal_mixture</span>(theta, mu, sigma)</span>
+<span id="cb33-9"><a href="#cb33-9" tabindex="-1"></a>    mu <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">5</span>)</span>
+<span id="cb33-10"><a href="#cb33-10" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb33-11"><a href="#cb33-11" tabindex="-1"></a>  }</span>
+<span id="cb33-12"><a href="#cb33-12" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>theta</code> は混合率なので、<code>type = &quot;simplex&quot;</code>
+を使います。</p>
+<p>混合分布は局所解が生じやすいため、MAP推定では
+<code>num_estimate</code>
+を多めにして、複数の初期値から最もよい解を選ぶのが有効です。通常は、自分で初期値を細かく指定するよりも、まずは
+<code>init</code> を指定せずに <code>num_estimate</code>
+を増やすほうが手軽です。</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a>mdl_mix <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(data_mix, code_mix)</span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a>fit_mix <span class="ot">&lt;-</span> mdl_mix<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">num_estimate =</span> <span class="dv">20</span>)</span></code></pre></div>
+<p>MCMCを行う場合は、MAP推定で得られたパラメータ推定値を初期値として使うと安定しやすくなります。必要に応じて
+<code>init_jitter</code> で少しだけ揺らします。</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a>fit_mix_mcmc <span class="ot">&lt;-</span> mdl_mix<span class="sc">$</span><span class="fu">sample</span>(</span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a>  <span class="at">init =</span> fit_mix<span class="sc">$</span><span class="fu">estimate</span>(<span class="st">&quot;parameters&quot;</span>),</span>
+<span id="cb35-3"><a href="#cb35-3" tabindex="-1"></a>  <span class="at">init_jitter =</span> <span class="fl">0.2</span></span>
+<span id="cb35-4"><a href="#cb35-4" tabindex="-1"></a>)</span></code></pre></div>
+<p>混合分布では、ラベルスイッチングにも注意が必要です。成分の順序に意味がないため、MCMCでは成分ラベルが入れ替わることがあります。</p>
+</div>
+<div id="よくある注意点" class="section level1">
+<h1>よくある注意点</h1>
+<div id="data.frame-と-matrix" class="section level2">
+<h2>data.frame と matrix</h2>
+<p>行列積 <code>%*%</code> を使う場合、<code>X</code> は
+<code>matrix</code> にしておくのが安全です。</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(debate[, <span class="fu">c</span>(<span class="st">&quot;talk&quot;</span>, <span class="st">&quot;perf&quot;</span>, <span class="st">&quot;skill&quot;</span>)])</span></code></pre></div>
+<p><code>data.frame</code> のまま渡すと、列型によっては
+<code>X %*% beta</code> でエラーになります。</p>
+</div>
+<div id="model-ブロックを複雑にしすぎない" class="section level2">
+<h2>model ブロックを複雑にしすぎない</h2>
+<p><code>model</code>
+ブロックは、尤度と事前分布が見えるように書くのがおすすめです。</p>
+<p>前処理は <code>setup</code>、派生量は <code>transform</code>
+に分けると、ユーザーが <code>print_code()</code>
+で見たときにも読みやすくなります。</p>
+</div>
+<div id="ad型に対する-if-文" class="section level2">
+<h2>AD型に対する if 文</h2>
+<p>推定中のパラメータを使った条件分岐は、<code>RTMB</code>のAD計算で問題になることがあります。</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" tabindex="-1"></a><span class="cf">if</span> (theta <span class="sc">&gt;</span> <span class="dv">0</span>) ...</span></code></pre></div>
+<p>のような書き方は避け、滑らかな関数や制約つきパラメータ化で表現するほうが安全です。</p>
+</div>
+<div id="初期値" class="section level2">
+<h2>初期値</h2>
+<p>複雑なモデルでは、初期値が重要です。</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a>init <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb38-2"><a href="#cb38-2" tabindex="-1"></a>  <span class="at">alpha =</span> <span class="fu">mean</span>(Y),</span>
+<span id="cb38-3"><a href="#cb38-3" tabindex="-1"></a>  <span class="at">beta =</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">ncol</span>(X)),</span>
+<span id="cb38-4"><a href="#cb38-4" tabindex="-1"></a>  <span class="at">sigma =</span> <span class="fu">sd</span>(Y)</span>
+<span id="cb38-5"><a href="#cb38-5" tabindex="-1"></a>)</span>
+<span id="cb38-6"><a href="#cb38-6" tabindex="-1"></a></span>
+<span id="cb38-7"><a href="#cb38-7" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(data_reg, code_reg, <span class="at">init =</span> init)</span></code></pre></div>
+<p>特に、混合分布モデル、因子分析、多次元展開法、項目反応理論のような潜在変数モデルでは、適切な初期値が推定の安定性に大きく影響します。</p>
+</div>
+<div id="random-true" class="section level2">
+<h2>random = TRUE</h2>
+<p><code>random = TRUE</code>
+は、ランダム効果や潜在変数をラプラス近似で周辺化したいときに使います。</p>
+<p>ただし、すべてのパラメータに付ければよいわけではありません。固定効果として推定したい回帰係数や切片には、通常
+<code>random = TRUE</code> は付けません。</p>
+</div>
+</div>
+<div id="次に読む記事" class="section level1">
+<h1>次に読む記事</h1>
+<p><code>rtmb_code()</code>
+の内部的な構造をさらに詳しく知りたい場合は、<a href="ja-rtmb_internals.html">内部構造</a> を参照してください。</p>
+<p>既存のモデルを短く書きたい場合は、<a href="ja-wrapper_functions.html">ラッパー関数の使い方</a>
+が便利です。</p>
+<p>階層モデルや GLMM を wrapper で詳しく扱いたい場合は、<a href="ja-rtmb_glmer.html">階層モデル・GLMM・分散分析</a>
+を参照してください。</p>
+<p>まずパッケージ全体をざっと試したい場合は、<a href="ja-quick_start.html">クイックスタート</a> を参照してください。</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

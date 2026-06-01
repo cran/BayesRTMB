@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Introduction to BayesRTMB</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Introduction to BayesRTMB</h1>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#what-is-bayesrtmb" id="toc-what-is-bayesrtmb">What is
+BayesRTMB?</a>
+<ul>
+<li><a href="#links-to-articles" id="toc-links-to-articles">Links to
+Articles</a></li>
+</ul></li>
+<li><a href="#what-bayesrtmb-can-do" id="toc-what-bayesrtmb-can-do">What
+BayesRTMB Can Do</a></li>
+<li><a href="#two-entry-points" id="toc-two-entry-points">Two Entry
+Points</a></li>
+<li><a href="#starting-from-wrapper-functions" id="toc-starting-from-wrapper-functions">Starting from Wrapper
+Functions</a></li>
+<li><a href="#writing-your-own-model" id="toc-writing-your-own-model">Writing Your Own Model</a></li>
+<li><a href="#choosing-an-inference-method" id="toc-choosing-an-inference-method">Choosing an Inference Method</a>
+<ul>
+<li><a href="#mcmc" id="toc-mcmc">MCMC</a></li>
+<li><a href="#map-estimation" id="toc-map-estimation">MAP
+Estimation</a></li>
+<li><a href="#variational-inference" id="toc-variational-inference">Variational Inference</a></li>
+<li><a href="#frequentist-analysis" id="toc-frequentist-analysis">Frequentist Analysis</a></li>
+</ul></li>
+<li><a href="#random-effects-and-laplace-approximation" id="toc-random-effects-and-laplace-approximation">Random Effects and
+Laplace Approximation</a></li>
+<li><a href="#model-comparison-bridge-sampling-waic" id="toc-model-comparison-bridge-sampling-waic">Model Comparison (Bridge
+Sampling / WAIC)</a>
+<ul>
+<li><a href="#marginal-likelihood-and-bayes-factor-by-bridge-sampling" id="toc-marginal-likelihood-and-bayes-factor-by-bridge-sampling">Marginal
+Likelihood and Bayes Factor by Bridge Sampling</a></li>
+<li><a href="#model-comparison-by-waic" id="toc-model-comparison-by-waic">Model Comparison by WAIC</a></li>
+</ul></li>
+<li><a href="#next-steps" id="toc-next-steps">Next Steps</a></li>
+</ul>
+</div>
+
+<div id="what-is-bayesrtmb" class="section level1">
+<h1>What is BayesRTMB?</h1>
+<p><strong>BayesRTMB</strong> is a package for specifying and estimating
+statistical models in R, using RTMB as the computational engine.</p>
+<p>In BayesRTMB, standard analyses can start from wrapper functions such
+as <code>rtmb_lm()</code> and <code>rtmb_glmer()</code>. When needed,
+you can also use <code>rtmb_code()</code> to write custom models with a
+Stan-like feel.</p>
+<p>The basic idea of BayesRTMB is that MCMC, MAP estimation, variational
+inference, and frequentist analysis can all be called from a single
+model object.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>fit_vb <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>()</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>fit_freq <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">classic</span>()</span></code></pre></div>
+<p>This page introduces where BayesRTMB fits and the overall picture
+that is useful to know when first using the package. More detailed
+model-writing rules and individual analysis examples are covered in the
+other vignettes.</p>
+<div id="links-to-articles" class="section level2">
+<h2>Links to Articles</h2>
+<p>The following articles are available.</p>
+<ul>
+<li><strong><a href="introduction.html">English
+Introduction</a></strong></li>
+<li><strong><a href="quick_start.html">Quick Start</a></strong></li>
+<li><strong><a href="wrapper_functions.html">Wrapper
+Functions</a></strong></li>
+<li><strong><a href="rtmb_glmer.html">Hierarchical Models and
+GLMMs</a></strong></li>
+<li><strong><a href="writing_models.html">Writing Model
+Codes</a></strong></li>
+<li><strong><a href="rtmb_internals.html">RTMB Internals and Inference
+Algorithms</a></strong></li>
+</ul>
+</div>
+</div>
+<div id="what-bayesrtmb-can-do" class="section level1">
+<h1>What BayesRTMB Can Do</h1>
+<p>The main features of BayesRTMB are as follows.</p>
+<ul>
+<li><p><strong>Write models directly in R</strong><br />
+With <code>rtmb_code()</code>, you can specify models by separating them
+into blocks such as <code>parameters</code>, <code>transform</code>,
+<code>model</code>, and <code>generate</code>.</p></li>
+<li><p><strong>Start analysis immediately from wrapper
+functions</strong><br />
+Regression, generalized linear models, mixed models, t tests,
+correlations, factor analysis, IRT, latent rank theory, multidimensional
+unfolding, and other analyses can be run from specialized wrapper
+functions.</p></li>
+<li><p><strong>Use multiple inference methods from the same
+model</strong><br />
+MCMC, MAP estimation, variational inference, and frequentist analysis
+can all be called from the same <code>RTMB_Model</code> object.</p></li>
+<li><p><strong>Handle random effects efficiently</strong><br />
+Parameters declared with <code>random = TRUE</code> can be marginalized
+by Laplace approximation in MAP estimation.</p></li>
+<li><p><strong>Inspect the model created by wrappers</strong><br />
+<code>print_code()</code> lets you inspect the <code>rtmb_code()</code>
+object internally generated by a wrapper function.</p></li>
+<li><p><strong>Support model comparison</strong><br />
+MCMC results can be used to compute marginal likelihoods and Bayes
+factors by bridge sampling.</p></li>
+</ul>
+</div>
+<div id="two-entry-points" class="section level1">
+<h1>Two Entry Points</h1>
+<p>BayesRTMB has two broad entry points.</p>
+<p>The first is a set of <strong>wrapper functions</strong> for standard
+analyses. Usually, this is the easiest place to start.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">data</span>(debate)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(sat <span class="sc">~</span> talk <span class="sc">+</span> perf, <span class="at">data =</span> debate)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>fit <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>fit</span></code></pre></div>
+<p>The second is <strong><code>rtmb_code()</code></strong>, which is
+used when you want to write the model yourself. This is useful when a
+model is difficult to express with wrappers or when you want to try a
+new model.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>dat <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">Y =</span> debate<span class="sc">$</span>sat,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">X =</span> <span class="fu">data.matrix</span>(debate[<span class="fu">c</span>(<span class="st">&quot;talk&quot;</span>, <span class="st">&quot;perf&quot;</span>)])</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>code <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>    N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>    P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>  },</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>    alpha <span class="ot">=</span> <span class="fu">Dim</span>()</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>    beta <span class="ot">=</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>    sigma <span class="ot">=</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>  },</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>  },</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>    alpha <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>    beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>  }</span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>)</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(dat, code)</span></code></pre></div>
+<p>In the <code>model</code> block, you can use sampling syntax like
+this.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span></code></pre></div>
+<p>Internally, this is converted into code that adds log densities.</p>
+</div>
+<div id="starting-from-wrapper-functions" class="section level1">
+<h1>Starting from Wrapper Functions</h1>
+<p>First, let us look at an example using a wrapper function. Here we
+use the <code>debate</code> data and consider a linear regression model
+in which satisfaction <code>sat</code> is explained by <code>talk</code>
+and <code>perf</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">data</span>(debate)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>mdl_lm <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">+</span> perf,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">data =</span> debate</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>At this point, estimation has not yet been run. <code>mdl_lm</code>
+is an <code>RTMB_Model</code> object that stores the model definition
+and data.</p>
+<p>To run MAP estimation, use <code>optimize()</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>fit_map</span></code></pre></div>
+<pre class="text"><code>## Starting RTMB optimization...
+## 
+## 
+## Call:
+## MAP Estimation via RTMB
+## 
+## Negative Log-Posterior: 395.58
+## Approx. Log Marginal Likelihood (Laplace): -404.61
+## 
+## Point Estimates and 95% Wald CI:
+##  variable  Estimate  Std. Error  Lower 95%  Upper 95% 
+## Intercept   1.83366     0.21105    1.42000    2.24732 
+## b[talk]     0.28694     0.05291    0.18323    0.39064 
+## b[perf]     0.15632     0.02987    0.09777    0.21486 
+## sigma       0.90453     0.03693    0.83497    0.97988 </code></pre>
+<p>If you want to estimate the model as a frequentist linear regression,
+use <code>classic()</code>. <code>classic()</code> is available for
+wrapper models constructed with a flat prior.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>fit_freq <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>fit_freq</span></code></pre></div>
+<pre class="text"><code>## Starting RTMB optimization...
+## 
+## 
+## Call:
+## Classical estimation via lm 
+## 
+## Log-Likelihood: -402.220, AIC: 812.440, BIC: 827.255
+## 
+## Point Estimates and Confidence Intervals:
+##           Estimate Std. Error Lower 95% Upper 95%  df  t value     Pr    
+## Intercept  1.83366    0.21212   1.41621   2.25110 297  8.64454 &lt;.0001 ***
+## b[talk]    0.28694    0.05318   0.18229   0.39159 297  5.39580 &lt;.0001 ***
+## b[perf]    0.15632    0.03002   0.09724   0.21539 297  5.20703 &lt;.0001 ***
+## sigma      0.90909    0.03730   0.83856   0.98554 297     NA</code></pre>
+<p>You can inspect the model code generated by a wrapper function with
+<code>print_code()</code>.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>mdl_lm<span class="sc">$</span><span class="fu">print_code</span>()</span></code></pre></div>
+<pre class="text"><code>## === RTMB Model Code ===
+## 
+## rtmb_code(
+##   setup = {
+##     mf &lt;- model.frame(formula, df)
+##     Y &lt;- model.response(mf)
+##     X_full &lt;- model.matrix(formula, mf)
+##     X &lt;- X_full[, colnames(X_full) != &quot;(Intercept)&quot;, drop = FALSE]
+##     N &lt;- length(Y)
+##     K &lt;- ncol(X)
+##   }, 
+##   parameters = {
+##     Intercept &lt;- Dim(1)
+##     b &lt;- Dim(K)
+##     sigma &lt;- Dim(num_sigma_groups, lower = 0)
+##   }, 
+##   model = {
+##     # Transform
+##     eta &lt;- Intercept + X %*% b
+##     # Likelihood (Data)
+##     Y ~ normal(eta, sigma)
+##     # Priors
+##   }
+## )</code></pre>
+<p><code>print_code()</code> displays blocks such as <code>setup</code>,
+<code>parameters</code>, <code>transform</code>, and <code>model</code>
+so that users can reproduce the same model with
+<code>rtmb_model()</code>.</p>
+</div>
+<div id="writing-your-own-model" class="section level1">
+<h1>Writing Your Own Model</h1>
+<p>When you want to write a more flexible model, use
+<code>rtmb_code()</code>.</p>
+<p>The main blocks of <code>rtmb_code()</code> are as follows.</p>
+<ul>
+<li><code>setup</code>: preprocess quantities needed from the data</li>
+<li><code>parameters</code>: declare parameters to be estimated</li>
+<li><code>transform</code>: create derived quantities and linear
+predictors from parameters</li>
+<li><code>model</code>: write the likelihood and prior
+distributions</li>
+<li><code>generate</code>: compute predictions and generated
+quantities</li>
+</ul>
+<p>For example, a regression model with simple normal and exponential
+priors close to <code>prior_normal()</code> can be written as
+follows.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>dat <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="at">Y =</span> <span class="fu">as.numeric</span>(debate<span class="sc">$</span>sat),</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">X =</span> <span class="fu">data.matrix</span>(debate[<span class="fu">c</span>(<span class="st">&quot;talk&quot;</span>, <span class="st">&quot;perf&quot;</span>, <span class="st">&quot;skill&quot;</span>)])</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>code_reg <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>    N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>    P <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  },</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>    alpha <span class="ot">=</span> <span class="fu">Dim</span>()</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>    beta <span class="ot">=</span> <span class="fu">Dim</span>(P)</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>    sigma <span class="ot">=</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a>  },</span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a>  },</span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a>    alpha <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a>    beta <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">2.5</span>)</span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a>  },</span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a>  <span class="at">generate =</span> {</span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a>    Y_rep <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">length</span>(Y), mu, sigma)</span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a>  }</span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a>)</span>
+<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a>mdl_reg <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(dat, code_reg)</span></code></pre></div>
+<p>Writing preprocessing in <code>setup</code> makes the
+<code>parameters</code> and <code>model</code> blocks easier to read. It
+also makes the processing needed to reproduce the model visible when
+<code>print_code()</code> is displayed.</p>
+</div>
+<div id="choosing-an-inference-method" class="section level1">
+<h1>Choosing an Inference Method</h1>
+<p>BayesRTMB is built primarily around Bayesian estimation. For that
+reason, this section presents the methods in the order MCMC, MAP
+estimation, variational inference, and frequentist analysis.</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Main purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$sample()</code></td>
+<td>Run MCMC sampling with NUTS</td>
+</tr>
+<tr class="even">
+<td><code>$optimize()</code></td>
+<td>Run fast MAP estimation or maximum likelihood estimation</td>
+</tr>
+<tr class="odd">
+<td><code>$variational()</code></td>
+<td>Approximate the posterior distribution with ADVI</td>
+</tr>
+<tr class="even">
+<td><code>$classic()</code></td>
+<td>Treat a flat-prior wrapper model as a frequentist analysis</td>
+</tr>
+</tbody>
+</table>
+<div id="mcmc" class="section level2">
+<h2>MCMC</h2>
+<p><code>sample()</code> runs MCMC sampling with NUTS. Use it when you
+want to inspect the full posterior distribution or when MAP estimation
+alone is not enough to represent uncertainty.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">summary</span>()</span></code></pre></div>
+<pre class="text"><code>##  variable     mean    sd      map     q2.5    q97.5  ess_bulk  ess_tail  rhat 
+## lp         -397.79  1.54  -396.75  -401.63  -395.94       859      1236  1.01
+## Intercept     1.82  0.22     1.78     1.38     2.26       629      1023  1.01
+## b[talk]       0.29  0.05     0.28     0.18     0.40       665      1205  1.00
+## b[perf]       0.16  0.03     0.15     0.10     0.22       671       990  1.01
+## sigma         0.91  0.04     0.91     0.84     1.00       934      1254  1.01</code></pre>
+</div>
+<div id="map-estimation" class="section level2">
+<h2>MAP Estimation</h2>
+<p><code>optimize()</code> performs point estimation by maximizing the
+posterior distribution or likelihood. It is useful for checking a model
+and for initial exploration of complex models.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>fit_map<span class="sc">$</span><span class="fu">summary</span>()</span></code></pre></div>
+<pre class="text"><code>## Starting RTMB optimization...
+## 
+## 
+## Call:
+## MAP Estimation via RTMB
+## 
+## Negative Log-Posterior: 395.58
+## Approx. Log Marginal Likelihood (Laplace): -404.61
+## 
+## Point Estimates and 95% Wald CI:
+##  variable  Estimate  Std. Error  Lower 95%  Upper 95% 
+## Intercept   1.83366     0.21105    1.42000    2.24732 
+## b[talk]     0.28694     0.05291    0.18323    0.39064 
+## b[perf]     0.15632     0.02987    0.09777    0.21486 
+## sigma       0.90453     0.03693    0.83497    0.97988 </code></pre>
+<p>With <code>se_method = &quot;sampling&quot;</code>, standard errors and
+intervals for generated quantities can be calculated by propagating
+uncertainty through approximate normal samples.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">se_method =</span> <span class="st">&quot;sampling&quot;</span>)</span></code></pre></div>
+</div>
+<div id="variational-inference" class="section level2">
+<h2>Variational Inference</h2>
+<p><code>variational()</code> approximates the posterior distribution
+using ADVI. It is useful when you want rough results faster than MCMC.
+However, it can underestimate posterior uncertainty, so caution is
+needed when using it for final uncertainty assessment.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>fit_vb <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">variational</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;meanfield&quot;</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="at">iter =</span> <span class="dv">3000</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="at">num_estimate =</span> <span class="dv">4</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="frequentist-analysis" class="section level2">
+<h2>Frequentist Analysis</h2>
+<p><code>classic()</code> returns frequentist estimation results for
+flat-prior models constructed by wrapper functions.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>fit_freq <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>fit_freq<span class="sc">$</span><span class="fu">summary</span>()</span></code></pre></div>
+<pre class="text"><code>## Starting RTMB optimization...
+## 
+## 
+## Call:
+## Classical estimation via lm 
+## 
+## Log-Likelihood: -402.220, AIC: 812.440, BIC: 827.255
+## 
+## Point Estimates and Confidence Intervals:
+##           Estimate Std. Error Lower 95% Upper 95%  df  t value     Pr    
+## Intercept  1.83366    0.21212   1.41621   2.25110 297  8.64454 &lt;.0001 ***
+## b[talk]    0.28694    0.05318   0.18229   0.39159 297  5.39580 &lt;.0001 ***
+## b[perf]    0.15632    0.03002   0.09724   0.21539 297  5.20703 &lt;.0001 ***
+## sigma      0.90909    0.03730   0.83856   0.98554 297     NA</code></pre>
+<p>For <code>lm</code>- and <code>glm</code>-type models, test
+statistics are displayed in a form close to the usual notation. For
+mixed models, degrees-of-freedom corrections and Laplace approximation
+are used when needed.</p>
+</div>
+</div>
+<div id="random-effects-and-laplace-approximation" class="section level1">
+<h1>Random Effects and Laplace Approximation</h1>
+<p>In hierarchical and mixed models, parameters can be declared with
+<code>random = TRUE</code>.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>Y <span class="ot">&lt;-</span> debate<span class="sc">$</span>sat</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>group <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">factor</span>(debate<span class="sc">$</span>group))</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>G <span class="ot">&lt;-</span> <span class="fu">length</span>(<span class="fu">unique</span>(group))</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>dat_icc <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">Y =</span> Y, <span class="at">group =</span> group, <span class="at">G =</span> G)</span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a>code_icc <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a>    mu <span class="ot">=</span> <span class="fu">Dim</span>()</span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>    sigma <span class="ot">=</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a>    tau <span class="ot">=</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a>    r <span class="ot">=</span> <span class="fu">Dim</span>(G, <span class="at">random =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a>  },</span>
+<span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu <span class="sc">+</span> r[group] <span class="sc">*</span> tau, sigma)</span>
+<span id="cb21-16"><a href="#cb21-16" tabindex="-1"></a>    r <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb21-17"><a href="#cb21-17" tabindex="-1"></a>    tau <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb21-18"><a href="#cb21-18" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb21-19"><a href="#cb21-19" tabindex="-1"></a>  },</span>
+<span id="cb21-20"><a href="#cb21-20" tabindex="-1"></a>  <span class="at">generate =</span> {</span>
+<span id="cb21-21"><a href="#cb21-21" tabindex="-1"></a>    icc <span class="ot">&lt;-</span> tau<span class="sc">^</span><span class="dv">2</span> <span class="sc">/</span> (tau<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> sigma<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb21-22"><a href="#cb21-22" tabindex="-1"></a>  }</span>
+<span id="cb21-23"><a href="#cb21-23" tabindex="-1"></a>)</span>
+<span id="cb21-24"><a href="#cb21-24" tabindex="-1"></a></span>
+<span id="cb21-25"><a href="#cb21-25" tabindex="-1"></a>mdl_icc <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(dat_icc, code_icc)</span>
+<span id="cb21-26"><a href="#cb21-26" tabindex="-1"></a>fit_icc <span class="ot">&lt;-</span> mdl_icc<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">laplace =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>In MAP estimation, <code>laplace = TRUE</code> is the default.
+Parameters declared with <code>random = TRUE</code> are marginalized by
+Laplace approximation.</p>
+<p>With wrapper functions, a mixed model can be written as follows.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>mdl_hlm <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">+</span> perf <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>  <span class="at">data =</span> debate,</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span></span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>)</span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a>fit_hlm <span class="ot">&lt;-</span> mdl_hlm<span class="sc">$</span><span class="fu">optimize</span>()</span></code></pre></div>
+</div>
+<div id="model-comparison-bridge-sampling-waic" class="section level1">
+<h1>Model Comparison (Bridge Sampling / WAIC)</h1>
+<div id="marginal-likelihood-and-bayes-factor-by-bridge-sampling" class="section level2">
+<h2>Marginal Likelihood and Bayes Factor by Bridge Sampling</h2>
+<p>For MCMC results, bridge sampling can be used to compute the marginal
+likelihood.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">bridgesampling</span>()</span></code></pre></div>
+<p>For example, the output is displayed as follows.</p>
+<pre class="text"><code>## Bridge Sampling Converged: LogML = -404.591 (Error = 0.0032, ESS = 604.0)</code></pre>
+<p>The returned value is a numeric log marginal likelihood with
+<code>error</code> and <code>ess</code> attributes.</p>
+<p>Use <code>bayes_factor()</code> when you want to compute a Bayes
+factor.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>bf <span class="ot">&lt;-</span> fit_mcmc<span class="sc">$</span><span class="fu">bayes_factor</span>(<span class="at">fixed =</span> <span class="fu">list</span>(<span class="st">&quot;b[talk]&quot;</span> <span class="ot">=</span> <span class="dv">0</span>))</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>bf</span></code></pre></div>
+<pre class="text"><code>## --- Bayes Factor Analysis (Bridge Sampling) ---
+## Bayes Factor (BF12) : 142963.4
+## Log Bayes Factor    : 11.8703 (Approx. Error = 0.0040)
+## Evidence            : Decisive evidence for Model 1 
+## Comparison model    : Parameters fixed at list(&quot;b[talk]&quot; = 0) </code></pre>
+</div>
+<div id="model-comparison-by-waic" class="section level2">
+<h2>Model Comparison by WAIC</h2>
+<p>In BayesRTMB, if you store the pointwise log likelihood for each
+observation in a variable named <code>log_lik</code> within the
+<code>generate</code> block of <code>rtmb_code()</code>, you can
+calculate the WAIC (Widely Applicable Information Criterion) using the
+<code>$WAIC()</code> method after estimation.</p>
+<p>For example, define <code>log_lik</code> in the <code>generate</code>
+block of a custom model as follows:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a>  generate <span class="ot">=</span> {</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>    <span class="co"># Compute the pointwise log likelihood and assign it to log_lik (specify sum = FALSE)</span></span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>    log_lik <span class="ot">&lt;-</span> <span class="fu">normal_lpdf</span>(Y, mu, sigma, <span class="at">sum =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>  }</span></code></pre></div>
+<p><em>Note: When using wrapper functions (e.g.,
+<code>rtmb_lm()</code>), you can specify <code>WAIC = TRUE</code> in the
+arguments to automatically generate <code>log_lik</code>
+internally.</em></p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a>mdl_lm <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(sat <span class="sc">~</span> talk <span class="sc">+</span> perf, <span class="at">data =</span> debate, <span class="at">WAIC =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl_lm<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="co"># Compute WAIC</span></span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">WAIC</span>()</span></code></pre></div>
+<p>The output will be displayed as follows:</p>
+<pre class="text"><code>## WAIC
+##   WAIC (elpd scale): -400.07398
+##   -2 WAIC: 800.14796
+##   p_waic: 4.70921
+##   lppd: -395.36477
+##   nobs: 300, draws: 4000</code></pre>
+<p>The <code>$WAIC()</code> method is available for results from MCMC
+(<code>MCMC_Fit</code>), variational inference (<code>VB_Fit</code>),
+and MAP estimation (<code>MAP_Fit</code>) with
+<code>se_method = &quot;sampling&quot;</code>.</p>
+</div>
+</div>
+<div id="next-steps" class="section level1">
+<h1>Next Steps</h1>
+<p>Once you have a general picture of BayesRTMB, the next step is to
+read the articles that match your purpose.</p>
+<ol style="list-style-type: decimal">
+<li><p><strong><a href="quick_start.html">Quick Start</a></strong><br />
+Walk through a basic model and learn the flow of
+<code>rtmb_code()</code> and <code>rtmb_model()</code>.</p></li>
+<li><p><strong><a href="wrapper_functions.html">Wrapper
+Functions</a></strong><br />
+Learn how to run standard analyses such as regression, generalized
+linear models, mixed models, and t tests with wrapper
+functions.</p></li>
+<li><p><strong><a href="rtmb_glmer.html">Hierarchical Models and
+GLMMs</a></strong><br />
+Learn how to use <code>rtmb_glmer()</code> for hierarchical models,
+GLMMs, residual correlation, ordinal models, priors, and
+visualization.</p></li>
+<li><p><strong><a href="writing_models.html">Writing Model
+Codes</a></strong><br />
+Learn how to write your own models using the <code>setup</code>,
+<code>parameters</code>, <code>transform</code>, <code>model</code>, and
+<code>generate</code> blocks.</p></li>
+<li><p><strong><a href="rtmb_internals.html">RTMB Internals and
+Inference Algorithms</a></strong><br />
+Learn about internal processing such as Laplace approximation,
+constrained parameters, MCMC, and variational inference.</p></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

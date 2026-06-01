@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Hierarchical Models and GLMMs with rtmb_glmer()</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Hierarchical Models and GLMMs with
+rtmb_glmer()</h1>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#purpose" id="toc-purpose">Purpose</a></li>
+<li><a href="#a-minimal-random-intercept-model" id="toc-a-minimal-random-intercept-model">1. A Minimal Random-Intercept
+Model</a></li>
+<li><a href="#choosing-an-inference-method" id="toc-choosing-an-inference-method">2. Choosing an Inference
+Method</a>
+<ul>
+<li><a href="#mcmc" id="toc-mcmc">MCMC</a></li>
+<li><a href="#map-with-laplace-approximation" id="toc-map-with-laplace-approximation">MAP with Laplace
+Approximation</a></li>
+<li><a href="#variational-inference" id="toc-variational-inference">Variational Inference</a></li>
+<li><a href="#classical-estimation" id="toc-classical-estimation">Classical Estimation</a></li>
+</ul></li>
+<li><a href="#formula-syntax-and-visualization" id="toc-formula-syntax-and-visualization">3. Formula Syntax and
+Visualization</a>
+<ul>
+<li><a href="#random-intercepts" id="toc-random-intercepts">Random
+Intercepts</a></li>
+<li><a href="#random-slopes" id="toc-random-slopes">Random
+Slopes</a></li>
+<li><a href="#multiple-grouping-factors" id="toc-multiple-grouping-factors">Multiple Grouping Factors</a></li>
+<li><a href="#conditional-effects" id="toc-conditional-effects">Conditional Effects</a></li>
+</ul></li>
+<li><a href="#families" id="toc-families">4. Families</a></li>
+<li><a href="#data-handling" id="toc-data-handling">5. Data Handling</a>
+<ul>
+<li><a href="#wide-data-can-be-converted-internally" id="toc-wide-data-can-be-converted-internally">Wide Data Can Be
+Converted Internally</a></li>
+<li><a href="#converting-variables-to-factors" id="toc-converting-variables-to-factors">Converting Variables to
+Factors</a></li>
+<li><a href="#centering-within-cluster" id="toc-centering-within-cluster">Centering Within Cluster</a></li>
+</ul></li>
+<li><a href="#priors" id="toc-priors">6. Priors</a>
+<ul>
+<li><a href="#prior_flat" id="toc-prior_flat"><code>prior_flat()</code></a></li>
+<li><a href="#prior_normal" id="toc-prior_normal"><code>prior_normal()</code></a></li>
+<li><a href="#prior_weak" id="toc-prior_weak"><code>prior_weak()</code></a></li>
+<li><a href="#regularized-priors" id="toc-regularized-priors">Regularized Priors</a></li>
+<li><a href="#jzs-prior" id="toc-jzs-prior">JZS Prior</a></li>
+</ul></li>
+<li><a href="#residual-correlation" id="toc-residual-correlation">7.
+Residual Correlation</a></li>
+<li><a href="#anova-style-classical-workflows" id="toc-anova-style-classical-workflows">8. ANOVA-Style Classical
+Workflows</a></li>
+<li><a href="#inspecting-generated-code" id="toc-inspecting-generated-code">9. Inspecting Generated Code</a></li>
+<li><a href="#model-comparison" id="toc-model-comparison">10. Model
+Comparison</a></li>
+<li><a href="#related-articles" id="toc-related-articles">11. Related
+Articles</a></li>
+</ul>
+</div>
+
+<div id="purpose" class="section level1">
+<h1>Purpose</h1>
+<p>This article explains how to use <code>rtmb_glmer()</code> for
+hierarchical models and generalized linear mixed models in
+BayesRTMB.</p>
+<p><code>rtmb_glmer()</code> is the main wrapper for models that
+combine:</p>
+<ul>
+<li>fixed effects written with R formulas;</li>
+<li>random effects such as <code>(1 | id)</code> and
+<code>(x | id)</code>;</li>
+<li>non-Gaussian likelihoods such as Bernoulli, Poisson, negative
+binomial, ordered, and sequential models;</li>
+<li>Bayesian priors, MAP estimation, MCMC, variational inference, and
+classical estimation where applicable.</li>
+</ul>
+<p>The function is designed to feel familiar to users of
+<code>lme4::glmer()</code>, while returning a BayesRTMB
+<code>RTMB_Model</code> object. From the same model object, you can
+call:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>fit_map  <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>fit_vb   <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>()</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>fit_cl   <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">classic</span>()</span></code></pre></div>
+<p>BayesRTMB’s functional priority is MCMC, MAP, VB, and then classical
+estimation. For final Bayesian inference, use MCMC whenever feasible.
+MAP is useful for fast checks and Laplace approximation. VB is useful
+for approximate inference in larger models. Classical estimation is
+useful for flat-prior wrapper models when you want familiar frequentist
+summaries.</p>
+</div>
+<div id="a-minimal-random-intercept-model" class="section level1">
+<h1>1. A Minimal Random-Intercept Model</h1>
+<p>The basic syntax is close to <code>lme4</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(BayesRTMB)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">data</span>(debate)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">+</span> perf <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">data =</span> debate,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>This code has:</p>
+<ul>
+<li>fixed effects for <code>talk</code> and <code>perf</code>;</li>
+<li>a random intercept for <code>group</code>;</li>
+<li>a Gaussian likelihood;</li>
+<li>normal and exponential priors generated by
+<code>prior_normal()</code>.</li>
+</ul>
+<p>At this point, the model has been created but not fitted.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>fit_map</span></code></pre></div>
+<pre class="text"><code>## Starting RTMB optimization...
+## 
+## 
+## Call:
+## MAP Estimation via RTMB
+## 
+## Negative Log-Posterior: 403.89
+## Approx. Log Marginal Likelihood (Laplace): -412.12
+## Note: Random effects are stored in $random_effects
+## 
+## Point Estimates and 95% Wald CI:
+##    variable  Estimate  Std. Error  Lower 95%  Upper 95% 
+## Intercept     2.11240     0.25310    1.61650    2.60820 
+## b[talk]       0.26980     0.05520    0.16160    0.37800 
+## b[perf]       0.14850     0.03120    0.08730    0.20960 
+## sigma         0.77090     0.03910    0.69780    0.85150 
+## sd[Int]       0.51020     0.06780    0.39310    0.66210 </code></pre>
+<p>Random effects are stored separately in
+<code>fit_map$random_effects</code>.</p>
+</div>
+<div id="choosing-an-inference-method" class="section level1">
+<h1>2. Choosing an Inference Method</h1>
+<div id="mcmc" class="section level2">
+<h2>MCMC</h2>
+<p>Use <code>sample()</code> when you want the full posterior
+distribution.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="at">sampling =</span> <span class="dv">1000</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">warmup =</span> <span class="dv">1000</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">summary</span>()</span></code></pre></div>
+<pre class="text"><code>## variable     mean    sd      map     q2.5    q97.5  ess_bulk  ess_tail  rhat
+## lp        -407.11  2.34  -405.02  -412.54  -403.91       812       963  1.00
+## b[talk]      0.27  0.06     0.27     0.16     0.38      1210      1314  1.00
+## b[perf]      0.15  0.03     0.15     0.09     0.21      1084      1172  1.00
+## sigma        0.78  0.04     0.77     0.70     0.86       940      1021  1.00
+## sd[Int]      0.53  0.08     0.51     0.39     0.70       731       884  1.01</code></pre>
+<p>MCMC is the safest default for final Bayesian interpretation,
+especially when comparing models with bridge sampling.</p>
+</div>
+<div id="map-with-laplace-approximation" class="section level2">
+<h2>MAP with Laplace Approximation</h2>
+<p>For hierarchical models, <code>optimize()</code> uses Laplace
+approximation by default.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">laplace =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>Parameters declared internally as random effects are integrated by
+Laplace approximation. This is often much faster than sampling all
+random effects directly.</p>
+</div>
+<div id="variational-inference" class="section level2">
+<h2>Variational Inference</h2>
+<p><code>variational()</code> gives an approximate posterior.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>fit_vb <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;meanfield&quot;</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">iter =</span> <span class="dv">5000</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>)</span></code></pre></div>
+<p>VB is useful for initial exploration or larger models, but it may
+underestimate uncertainty.</p>
+</div>
+<div id="classical-estimation" class="section level2">
+<h2>Classical Estimation</h2>
+<p>For supported flat-prior wrapper models, <code>classic()</code> gives
+frequentist-style summaries.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>mdl_flat <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">+</span> perf <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">data =</span> debate,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_flat</span>()</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>fit_cl <span class="ot">&lt;-</span> mdl_flat<span class="sc">$</span><span class="fu">classic</span>()</span></code></pre></div>
+</div>
+</div>
+<div id="formula-syntax-and-visualization" class="section level1">
+<h1>3. Formula Syntax and Visualization</h1>
+<div id="random-intercepts" class="section level2">
+<h2>Random Intercepts</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">rtmb_glmer</span>(y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id), <span class="at">data =</span> dat, <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>)</span></code></pre></div>
+<p>This allows each <code>id</code> to have its own intercept.</p>
+</div>
+<div id="random-slopes" class="section level2">
+<h2>Random Slopes</h2>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">rtmb_glmer</span>(y <span class="sc">~</span> x <span class="sc">+</span> (x <span class="sc">|</span> id), <span class="at">data =</span> dat, <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>)</span></code></pre></div>
+<p>This allows both the intercept and the effect of <code>x</code> to
+vary by <code>id</code>.</p>
+</div>
+<div id="multiple-grouping-factors" class="section level2">
+<h2>Multiple Grouping Factors</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">rtmb_glmer</span>(y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> subject) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> item),</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;bernoulli&quot;</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>)</span></code></pre></div>
+<p>This is useful for crossed or partially crossed designs.</p>
+</div>
+<div id="conditional-effects" class="section level2">
+<h2>Conditional Effects</h2>
+<p>After fitting regression, GLM, or GLMM models, use
+<code>conditional_effects()</code> to inspect fitted relationships.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>mdl_int <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">*</span> perf <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">data =</span> debate,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>)</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>fit_int <span class="ot">&lt;-</span> mdl_int<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>ce <span class="ot">&lt;-</span> <span class="fu">conditional_effects</span>(fit_int, <span class="at">effect =</span> <span class="st">&quot;talk:perf&quot;</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="fu">plot</span>(ce)</span></code></pre></div>
+<pre class="text"><code>## Conditional effects for: talk:perf
+## focal variable: talk
+## moderator: perf
+## moderator values: mean - 1 SD, mean, mean + 1 SD</code></pre>
+<p>For a table of simple slopes or pairwise contrasts, use
+<code>simple_effects()</code>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">simple_effects</span>(fit_int, <span class="at">effect =</span> <span class="st">&quot;talk:perf&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>## --- Simple Effects Analysis ---
+## moderator perf          term estimate  lower upper
+## perf       2.930 Slope of talk    0.038 -0.118 0.191
+## perf       4.690 Slope of talk    0.266  0.161 0.369
+## perf       6.450 Slope of talk    0.494  0.354 0.631</code></pre>
+<p>Posterior distributions and intervals can also be visualized with
+<code>plot_dens()</code>, <code>plot_trace()</code>,
+<code>plot_acf()</code>, and <code>plot_forest()</code>.</p>
+</div>
+</div>
+<div id="families" class="section level1">
+<h1>4. Families</h1>
+<p><code>rtmb_glmer()</code> supports several likelihood families.</p>
+<table>
+<thead>
+<tr class="header">
+<th><code>family</code></th>
+<th>Link</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>&quot;gaussian&quot;</code></td>
+<td>identity</td>
+<td>Continuous outcomes</td>
+</tr>
+<tr class="even">
+<td><code>&quot;lognormal&quot;</code></td>
+<td>log</td>
+<td>Positive skewed outcomes</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;student_t&quot;</code></td>
+<td>identity</td>
+<td>Continuous outcomes with outliers</td>
+</tr>
+<tr class="even">
+<td><code>&quot;gamma&quot;</code></td>
+<td>log</td>
+<td>Positive skewed outcomes</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;bernoulli&quot;</code></td>
+<td>logit</td>
+<td>Binary 0/1 outcomes</td>
+</tr>
+<tr class="even">
+<td><code>&quot;binomial&quot;</code></td>
+<td>logit</td>
+<td>Success/trial outcomes</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;poisson&quot;</code></td>
+<td>log</td>
+<td>Counts</td>
+</tr>
+<tr class="even">
+<td><code>&quot;neg_binomial&quot;</code></td>
+<td>log</td>
+<td>Overdispersed counts</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;ordered&quot;</code></td>
+<td>logit</td>
+<td>Ordinal categorical outcomes</td>
+</tr>
+<tr class="even">
+<td><code>&quot;sequential&quot;</code></td>
+<td>logit</td>
+<td>Sequential ordinal/category processes</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>mdl_bin <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;bernoulli&quot;</span>,</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="data-handling" class="section level1">
+<h1>5. Data Handling</h1>
+<div id="wide-data-can-be-converted-internally" class="section level2">
+<h2>Wide Data Can Be Converted Internally</h2>
+<p>Some repeated-measures data are stored in wide format.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>mdl_wide <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="fu">cbind</span>(y_t1, y_t2, y_t3) <span class="sc">~</span> cond <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="at">data =</span> dat_wide,</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  <span class="at">within =</span> <span class="fu">list</span>(<span class="at">time =</span> <span class="fu">c</span>(<span class="st">&quot;t1&quot;</span>, <span class="st">&quot;t2&quot;</span>, <span class="st">&quot;t3&quot;</span>)),</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>The wrapper can reshape the outcome internally into a long-format
+representation when appropriate. This keeps the user-facing formula
+compact while still creating the long-format model structure used
+internally.</p>
+</div>
+<div id="converting-variables-to-factors" class="section level2">
+<h2>Converting Variables to Factors</h2>
+<p>Use <code>factors =</code> when variables should be treated as
+categorical even if they are stored as numeric or character
+variables.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>mdl_fac <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  y <span class="sc">~</span> cond <span class="sc">*</span> time <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>  <span class="at">factors =</span> <span class="fu">c</span>(<span class="st">&quot;cond&quot;</span>, <span class="st">&quot;time&quot;</span>),</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>Internally, those variables are converted to factors before
+constructing design matrices.</p>
+</div>
+<div id="centering-within-cluster" class="section level2">
+<h2>Centering Within Cluster</h2>
+<p>Cluster-mean centering and centering within cluster can be specified
+through wrapper options.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>mdl_cwc <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> x_cwc <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> group),</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>  <span class="at">cwc =</span> <span class="fu">list</span>(<span class="at">cluster =</span> <span class="st">&quot;group&quot;</span>, <span class="at">pars =</span> <span class="st">&quot;x&quot;</span>),</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>This is useful when you want to separate within-cluster and
+between-cluster effects.</p>
+</div>
+</div>
+<div id="priors" class="section level1">
+<h1>6. Priors</h1>
+<div id="prior_flat" class="section level2">
+<h2><code>prior_flat()</code></h2>
+<p><code>prior_flat()</code> removes prior density contributions and is
+used when you want a maximum-likelihood or classical interpretation.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>mdl_flat <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_flat</span>()</span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>Use <code>classic()</code> with flat-prior wrapper models when a
+frequentist-style summary is desired.</p>
+</div>
+<div id="prior_normal" class="section level2">
+<h2><code>prior_normal()</code></h2>
+<p><code>prior_normal()</code> is the most beginner-friendly Bayesian
+default. It uses normal priors for location and regression parameters
+and positive priors such as exponential priors for scale parameters.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>mdl_norm <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>This is a good starting point when you want a simple Bayesian
+GLMM.</p>
+</div>
+<div id="prior_weak" class="section level2">
+<h2><code>prior_weak()</code></h2>
+<p><code>prior_weak()</code> builds weakly informative priors using
+information such as the outcome range.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>mdl_weak <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>  y <span class="sc">~</span> x <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_weak</span>(<span class="at">y_range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>))</span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>The basic idea is:</p>
+<ul>
+<li>use the range of the outcome to set a reasonable intercept
+scale;</li>
+<li>use the half-range and center of the outcome as weak
+information;</li>
+<li>scale fixed-effect priors by the scale of predictors;</li>
+<li>put positive weak priors on residual and random-effect scales.</li>
+</ul>
+<p>When using bridge sampling or Bayes factors, prior choice matters
+strongly. <code>prior_weak()</code> is often a safer starting point than
+an overly diffuse prior because it encodes a broad but still plausible
+scale for the model.</p>
+</div>
+<div id="regularized-priors" class="section level2">
+<h2>Regularized Priors</h2>
+<p>Regularized priors such as horseshoe-like priors or spike-and-slab
+priors are useful when many predictors are included.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a>mdl_rhs <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>  y <span class="sc">~</span> x1 <span class="sc">+</span> x2 <span class="sc">+</span> x3 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_rhs</span>(<span class="at">y_range =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>))</span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>MCMC is often more reliable than MAP for strongly regularized
+models.</p>
+</div>
+<div id="jzs-prior" class="section level2">
+<h2>JZS Prior</h2>
+<p>The JZS prior is mainly useful for Bayes-factor style testing,
+especially in t-test style models where the standardized effect size is
+a central parameter.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>mdl_jzs <span class="ot">&lt;-</span> <span class="fu">rtmb_ttest</span>(</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>  y <span class="sc">~</span> group,</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_jzs</span>()</span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>)</span></code></pre></div>
+<p>For GLMMs, <code>prior_normal()</code> or <code>prior_weak()</code>
+is usually easier to interpret. Use JZS priors when the model and
+hypothesis are explicitly designed for JZS-style Bayes-factor
+analysis.</p>
+</div>
+</div>
+<div id="residual-correlation" class="section level1">
+<h1>7. Residual Correlation</h1>
+<p><code>rtmb_glmer()</code> can represent residual correlation
+structures such as AR(1).</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>mdl_ar1 <span class="ot">&lt;-</span> <span class="fu">rtmb_glmer</span>(</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  y <span class="sc">~</span> time <span class="sc">+</span> cond,</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;gaussian&quot;</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>  <span class="at">resid_corr =</span> <span class="st">&quot;ar1&quot;</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>  <span class="at">resid_time =</span> <span class="st">&quot;time&quot;</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a>  <span class="at">resid_group =</span> <span class="st">&quot;id&quot;</span>,</span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb26-9"><a href="#cb26-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>Here, <code>resid_time</code> defines the ordering or lag variable
+within a residual-correlation block, and <code>resid_group</code>
+defines the independent blocks.</p>
+<p>If the model has no random effect term such as <code>(1 | id)</code>,
+you still need <code>resid_group = &quot;id&quot;</code> so that the AR(1)
+correlation is applied within each participant rather than across the
+whole data set.</p>
+<p>If a random effect grouping factor is already present and
+<code>resid_group</code> is omitted, BayesRTMB may use the first
+grouping factor internally. However, it is usually clearer to specify
+<code>resid_group</code> explicitly.</p>
+<p>Avoid adding <code>(1 | id)</code> reflexively when the purpose is
+only to model AR(1) residual dependence. A random intercept and a
+residual correlation structure can both be valid, but they answer
+different questions and can become redundant in simple repeated-measures
+settings.</p>
+</div>
+<div id="anova-style-classical-workflows" class="section level1">
+<h1>8. ANOVA-Style Classical Workflows</h1>
+<p>When you want an ordinary analysis-of-variance workflow, use
+<code>rtmb_lmer()</code> or <code>rtmb_glmer()</code> with
+<code>prior_flat()</code> and then call <code>classic()</code>.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a>mdl_aov <span class="ot">&lt;-</span> <span class="fu">rtmb_lmer</span>(</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>  y <span class="sc">~</span> cond <span class="sc">*</span> time <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>  <span class="at">data =</span> dat,</span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_flat</span>()</span>
+<span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a>)</span>
+<span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" tabindex="-1"></a>fit_aov <span class="ot">&lt;-</span> mdl_aov<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb27-8"><a href="#cb27-8" tabindex="-1"></a><span class="fu">anova</span>(fit_aov)</span></code></pre></div>
+<pre class="text"><code>## Analysis of Variance Table
+##           Df  Chisq Pr(&gt;Chisq)
+## cond       1  5.812     0.0159
+## time       2 12.406     0.0020
+## cond:time  2  6.134     0.0465</code></pre>
+<p>Estimated marginal means can be obtained with
+<code>lsmeans()</code>.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>emm <span class="ot">&lt;-</span> <span class="fu">lsmeans</span>(fit_aov, <span class="at">specs =</span> <span class="st">&quot;cond&quot;</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>emm</span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a><span class="fu">plot</span>(emm)</span></code></pre></div>
+<pre class="text"><code>##  cond estimate    SE lower.CL upper.CL
+##  0       3.21 0.082     3.05     3.37
+##  1       3.48 0.084     3.32     3.65</code></pre>
+<p>Use this route when your goal is close to conventional ANOVA, but you
+still want the model to be represented inside the BayesRTMB wrapper
+system.</p>
+</div>
+<div id="inspecting-generated-code" class="section level1">
+<h1>9. Inspecting Generated Code</h1>
+<p>Wrappers are convenient, but they still create
+<code>rtmb_code()</code> internally.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>mdl<span class="sc">$</span><span class="fu">print_code</span>()</span></code></pre></div>
+<p>Use <code>print_code()</code> when you want to understand the exact
+likelihood, priors, random-effect declarations, transformed quantities,
+or generated quantities created by a wrapper.</p>
+</div>
+<div id="model-comparison" class="section level1">
+<h1>10. Model Comparison</h1>
+<p>For Bayesian model comparison, fit with MCMC and use bridge
+sampling.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a>fit_full <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>fit_full<span class="sc">$</span><span class="fu">bridgesampling</span>()</span></code></pre></div>
+<pre class="text"><code>## Bridge Sampling Converged: LogML = -412.36 (Error = 0.0184, ESS = 91.2)</code></pre>
+<p>Bayes factors can be calculated by comparing against models with
+parameters fixed.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a>bf <span class="ot">&lt;-</span> fit_full<span class="sc">$</span><span class="fu">bayes_factor</span>(<span class="at">fixed =</span> <span class="fu">list</span>(<span class="st">&quot;b[talk]&quot;</span> <span class="ot">=</span> <span class="dv">0</span>))</span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a>bf</span></code></pre></div>
+<pre class="text"><code>## --- Bayes Factor Analysis (Bridge Sampling) ---
+## Bayes Factor (BF12) : 18.42
+## Log Bayes Factor    : 2.913
+## Evidence            : Strong evidence for Model 1</code></pre>
+<p>Because Bayes factors depend strongly on priors, use carefully
+designed priors. <code>prior_weak()</code> is often a reasonable
+starting point when you want weak but not implausibly diffuse
+priors.</p>
+</div>
+<div id="related-articles" class="section level1">
+<h1>11. Related Articles</h1>
+<ul>
+<li><a href="introduction.html">Introduction</a>: the overall BayesRTMB
+workflow.</li>
+<li><a href="quick_start.html">Quick Start</a>: a minimal first model
+and basic plots.</li>
+<li><a href="wrapper_functions.html">Wrapper Functions</a>: overview of
+standard wrapper functions.</li>
+<li><a href="writing_models.html">Writing Model Codes</a>: writing
+custom <code>rtmb_code()</code> models.</li>
+<li><a href="rtmb_internals.html">RTMB Internals and Inference
+Algorithms</a>: internal model representation and inference
+pipeline.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
