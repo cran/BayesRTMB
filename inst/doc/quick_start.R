@@ -52,7 +52,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 # fit_mcmc$summary()
 
 ## ----eval=FALSE---------------------------------------------------------------
-# install.packages(c("future", "future.apply", "progressr"))
+# install.packages("future")
 
 ## ----eval=FALSE---------------------------------------------------------------
 # fit_mcmc <- mdl$sample(

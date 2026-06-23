@@ -13,13 +13,15 @@ plot_mdu(
   radius = NULL,
   signs = c(1, 1),
   item_labels = NULL,
-  show_phi = TRUE,
+  show_radius = TRUE,
   show_density = TRUE,
   circle_scale = 1,
   alpha = 0.2,
   contour_n = 60,
   distance = c("auto", "squared", "euclidean"),
   point_estimate = c("EAP", "MAP", "mean", "marginal_map", "joint_map"),
+  prefer_rotated = TRUE,
+  show_phi = NULL,
   main = "MDU Configuration",
   xlab = NULL,
   ylab = NULL,
@@ -49,7 +51,7 @@ coordinates.}
 \item{item_labels}{Optional item labels. Defaults to row names or item
 numbers.}
 
-\item{show_phi}{Logical; whether to draw circles based on item alpha.}
+\item{show_radius}{Logical; whether to draw radius circles based on item alpha.}
 
 \item{show_density}{Logical; whether to draw density contours for `theta`.}
 
@@ -65,6 +67,11 @@ stored distance when available.}
 
 \item{point_estimate}{Character; point estimate used when `delta` is a fit
 object. Passed to `estimate()`.}
+
+\item{prefer_rotated}{Logical; when `delta` is a fitted object, prefer
+rotated generated quantities (`delta_rot` and `theta_rot`) if available.}
+
+\item{show_phi}{Deprecated alias for `show_radius`.}
 
 \item{main, xlab, ylab}{Plot title and axis labels.}
 

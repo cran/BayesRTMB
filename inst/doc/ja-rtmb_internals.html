@@ -656,6 +656,29 @@ sampling による周辺尤度推定などを扱えます。</p>
 <p>MCMC
 では、非制約尺度でサンプリングを行い、結果を自然尺度に戻して表示します。<code>generate</code>
 ブロックがあれば、サンプルごとの生成量も計算できます。</p>
+<p>BayesRTMB の NUTS
+には、提案点の選び方として2つのルートがあります。デフォルトの
+<code>nuts_variant = &quot;multinomial&quot;</code> は、Stan
+と同じように、構築された軌道上の候補をハミルトニアン重みに基づいて選びます。もう一つの
+<code>nuts_variant = &quot;slice&quot;</code> は、slice
+型の提案選択を使います。通常は、デフォルトの multinomial
+を主な経路として使います。</p>
+<p>質量行列は <code>metric</code> で指定できます。選択肢は
+<code>&quot;diag&quot;</code>、<code>&quot;dense&quot;</code>、<code>&quot;hybrid&quot;</code>、<code>&quot;auto&quot;</code>
+です。<code>&quot;diag&quot;</code>
+は軽量で、多くのモデルで十分に動きます。<code>&quot;dense&quot;</code>
+はパラメータ間の相関が強い場合に効率が上がることがあります。<code>&quot;hybrid&quot;</code>
+は、非ランダムパラメータ側を dense、ランダムパラメータ側を diagonal
+として扱う方法です。デフォルトの <code>&quot;auto&quot;</code> は hybrid
+から始め、warmup 中に dense block
+が不安定、または有用でないと判断された場合には、より単純な metric
+に戻します。</p>
+<p>warmup ではステップサイズと metric
+の両方を学習します。<code>metric_adaptation = &quot;stan_window&quot;</code> は
+Stan 風の windowed adaptation schedule
+を使うデフォルト設定です。<code>diagnose()</code>
+を使うと、実際に使われた metric、warmup summary、divergence、tree
+depth、leapfrog 数などを確認できます。</p>
 </div>
 <div id="optimize" class="section level2">
 <h2>optimize</h2>
@@ -971,6 +994,8 @@ RTMB が提供する AD 対応の条件分岐を検討します。</p>
 を作るかは、<a href="ja-wrapper_functions.html">ラッパー関数の使い方</a>
 と <code>print_code()</code> が参考になります。階層モデルや GLMM
 の具体的な使い方は、<a href="ja-rtmb_glmer.html">階層モデル・GLMM</a>
+で確認できます。fit object
+のメソッド、モデル比較、固定パラメータ、分布、AD テープ化の注意点は、<a href="ja-analysis_reference.html">分析リファレンス</a>
 で確認できます。</p>
 </div>
 

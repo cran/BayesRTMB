@@ -7,8 +7,9 @@
 rtmb_mdu(
   data,
   ndim = 2,
-  distance = c("squared", "euclidean"),
+  distance = c("euclidean", "squared"),
   alpha = c("random", "fix"),
+  lambda = c("fix", "random"),
   method = c("rating", "Best", "Best-Worst", "MDS"),
   sets = NULL,
   prior = prior_flat(),
@@ -29,12 +30,15 @@ single matrix/data frame is treated as pre-coded `Y_dif` pair indices.}
 
 \item{ndim}{Number of unfolding dimensions.}
 
-\item{distance}{Character; `"squared"` uses squared Euclidean distance
-(default, often easier for optimization), while `"euclidean"` uses Euclidean
-distance.}
+\item{distance}{Character; `"euclidean"` uses Euclidean distance (default),
+while `"squared"` uses squared Euclidean distance.}
 
 \item{alpha}{Character; `"random"` estimates item-specific alpha values as
 random effects (default), while `"fix"` estimates a single common alpha.}
+
+\item{lambda}{Character; for choice methods, `"fix"` estimates a common
+inverse-temperature parameter (default), while `"random"` estimates
+person-specific inverse-temperature parameters with a log-normal hierarchy.}
 
 \item{method}{Character; `"rating"` for continuous ratings, `"Best"` for
 best-only choice tasks, `"Best-Worst"` for best-worst choice tasks, or

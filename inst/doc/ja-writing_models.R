@@ -379,3 +379,27 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 # 
 # mdl <- rtmb_model(data_reg, code_reg, init = init)
 
+## -----------------------------------------------------------------------------
+# model = {
+#   eta <- rtmb_vector(0, N)
+#   for (i in seq_len(N)) {
+#     eta[i] <- alpha + X[i, ] %*% beta
+#   }
+#   Y ~ normal(eta, sigma)
+# }
+
+## -----------------------------------------------------------------------------
+# model = {
+#   logit_x <- rtmb_array(0, dim = c(N_time, C, D))
+#   for (t in seq_len(N_time)) {
+#     for (c in seq_len(C)) {
+#       for (d in seq_len(D)) {
+#         logit_x[t, c, d] <- alpha[d] + beta[d] * X[t, c]
+#       }
+#     }
+#   }
+# }
+
+## -----------------------------------------------------------------------------
+# fit2 <- upgrade_fit(fit)
+

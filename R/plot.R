@@ -418,7 +418,7 @@ plot_forest <- function(x, prob = 0.95,
 #' @param signs Numeric vector of length 2. Use `-1` to flip an axis.
 #' @param item_labels Optional item labels. Defaults to row names or item
 #'   numbers.
-#' @param show_phi Logical; whether to draw circles based on item alpha.
+#' @param show_radius Logical; whether to draw radius circles based on item alpha.
 #' @param show_density Logical; whether to draw density contours for `theta`.
 #' @param circle_scale Numeric multiplier for item radii.
 #' @param alpha Circle transparency.
@@ -428,6 +428,9 @@ plot_forest <- function(x, prob = 0.95,
 #'   stored distance when available.
 #' @param point_estimate Character; point estimate used when `delta` is a fit
 #'   object. Passed to `estimate()`.
+#' @param prefer_rotated Logical; when `delta` is a fitted object, prefer
+#'   rotated generated quantities (`delta_rot` and `theta_rot`) if available.
+#' @param show_phi Deprecated alias for `show_radius`.
 #' @param main,xlab,ylab Plot title and axis labels.
 #' @param ... Additional arguments passed to `plot()`.
 #'
@@ -436,17 +439,34 @@ plot_forest <- function(x, prob = 0.95,
 #' @export
 plot_mdu <- function(delta, theta = NULL, item_alpha = NULL, phi = NULL,
                      dims = c(1, 2), radius = NULL, signs = c(1, 1),
-                     item_labels = NULL, show_phi = TRUE, show_density = TRUE,
+                     item_labels = NULL, show_radius = TRUE, show_density = TRUE,
                      circle_scale = 1, alpha = 0.2, contour_n = 60,
                      distance = c("auto", "squared", "euclidean"),
                      point_estimate = c("EAP", "MAP", "mean", "marginal_map", "joint_map"),
+                     prefer_rotated = TRUE,
+                     show_phi = NULL,
                      main = "MDU Configuration", xlab = NULL, ylab = NULL, ...) {
   point_estimate <- match.arg(point_estimate)
   distance <- match.arg(distance)
+  prefer_rotated <- isTRUE(prefer_rotated)
+  phi_supplied <- !is.null(phi)
+
+  if (!is.null(show_phi)) {
+    warning("'show_phi' is deprecated; use 'show_radius' instead.", call. = FALSE)
+    show_radius <- show_phi
+  }
 
   if (!is.matrix(delta) && is.function(delta$estimate)) {
     fit <- delta
-    if (distance == "auto") distance <- fit$extra$distance %||% "squared"
+    if (distance == "auto") {
+      fit_distance <- fit$extra$distance %||% fit$model$extra$distance %||% NULL
+      fit_distance <- if (length(fit_distance)) as.character(fit_distance[1]) else NULL
+      distance <- if (!is.null(fit_distance) && fit_distance %in% c("squared", "euclidean")) {
+        fit_distance
+      } else {
+        "squared"
+      }
+    }
     est_type <- switch(
       point_estimate,
       EAP = "EAP",
@@ -456,16 +476,37 @@ plot_mdu <- function(delta, theta = NULL, item_alpha = NULL, phi = NULL,
       joint_map = "joint_map"
     )
     est <- fit$estimate(type = est_type, pars = "all", drop = FALSE)
-    if (is.null(est$delta)) {
+    use_rotated <- prefer_rotated && !is.null(est$delta_rot)
+    if (use_rotated) {
+      delta <- est$delta_rot
+      if (is.null(theta)) {
+        if (!is.null(est$theta_rot)) {
+          theta <- est$theta_rot
+        } else if (!is.null(est$theta)) {
+          warning(
+            "Using 'delta_rot' but 'theta_rot' was not found. ",
+            "Use rotate(..., linked = 'theta') to rotate person coordinates as well.",
+            call. = FALSE
+          )
+          theta <- est$theta
+        }
+      }
+    } else if (is.null(est$delta)) {
       stop("The fitted object does not contain 'delta'.", call. = FALSE)
+    } else {
+      delta <- est$delta
+      if (is.null(theta)) theta <- est$theta
     }
-    delta <- est$delta
-    if (is.null(theta)) theta <- est$theta
     if (is.null(item_alpha)) item_alpha <- est$alpha
     if (is.null(item_alpha) && is.null(phi)) phi <- est$phi
   }
   if (distance == "auto") distance <- "squared"
-  if (is.null(item_alpha) && !is.null(phi)) item_alpha <- phi
+  if (is.null(item_alpha) && !is.null(phi)) {
+    if (phi_supplied) {
+      warning("'phi' is deprecated; use 'item_alpha' instead.", call. = FALSE)
+    }
+    item_alpha <- phi
+  }
 
   delta <- as.matrix(delta)
   if (is.null(theta)) {
@@ -492,6 +533,7 @@ plot_mdu <- function(delta, theta = NULL, item_alpha = NULL, phi = NULL,
   if (is.null(item_labels)) {
     item_labels <- rownames(delta)
     if (is.null(item_labels)) item_labels <- seq_len(nrow(delta))
+    item_labels <- sub("^[Ii]tem\\s*([0-9]+)$", "\\1", as.character(item_labels))
   }
   if (length(item_labels) != nrow(delta)) {
     stop("'item_labels' must have the same length as nrow(delta).", call. = FALSE)
@@ -530,7 +572,7 @@ plot_mdu <- function(delta, theta = NULL, item_alpha = NULL, phi = NULL,
     }
   }
 
-  if (isTRUE(show_phi) && !is.null(item_alpha)) {
+  if (isTRUE(show_radius) && !is.null(item_alpha)) {
     item_alpha <- as.numeric(item_alpha)
     if (length(item_alpha) == 1L) {
       item_radius <- rep(0, nrow(delta))
@@ -542,7 +584,7 @@ plot_mdu <- function(delta, theta = NULL, item_alpha = NULL, phi = NULL,
     }
     max_item_radius <- max(item_radius, na.rm = TRUE)
     if (is.finite(max_item_radius) && max_item_radius > 0) {
-      item_radius <- item_radius / max_item_radius * radius * 0.35 * circle_scale
+      item_radius <- item_radius * circle_scale
       circle_col <- grDevices::rgb(0.1, 0.25, 0.9, alpha = alpha)
       angle <- seq(0, 2 * pi, length.out = 160)
       for (m in seq_along(item_radius)) {
@@ -560,7 +602,12 @@ plot_mdu <- function(delta, theta = NULL, item_alpha = NULL, phi = NULL,
   points(x_theta, y_theta, pch = 16, col = grDevices::rgb(0, 0, 0, 0.12), cex = 0.45)
   text(x_delta, y_delta, labels = item_labels, font = 2, cex = 0.9)
 
-  invisible(list(delta = cbind(x_delta, y_delta), theta = cbind(x_theta, y_theta), item_alpha = item_alpha))
+  invisible(list(
+    delta = cbind(x_delta, y_delta),
+    theta = cbind(x_theta, y_theta),
+    item_alpha = item_alpha,
+    item_labels = item_labels
+  ))
 }
 
 #' Plot pairs for posterior samples
@@ -651,12 +698,24 @@ plot_lsmeans <- function(fit, specs, ...) {
 #'
 #' @param fit A fitted model object (e.g., `MCMC_Fit`, `MAP_Fit`, `VB_Fit`).
 #' @param effect Name of the variable to visualize (e.g., "X1" or "X1:X2").
-#' @param ... Additional arguments passed to \code{\link{conditional_effects}} or the plot method.
+#' @param prob Probability for the credible/confidence interval.
+#' @param sd_multiplier Numeric multiplier for standard deviation when splitting continuous moderators.
+#' @param sd_slice Logical or NULL; controls whether continuous moderators are
+#'   evaluated at mean - SD, mean, and mean + SD.
+#' @param resolution Grid resolution to calculate for continuous variables.
+#' @param ... Additional arguments passed to the plot method.
 #'
 #' @return Invisibly returns the plotted object of class \code{ce_rtmb}.
 #' @export
-plot_conditional_effects <- function(fit, effect, ...) {
-  res <- conditional_effects(fit, effect, ...)
+plot_conditional_effects <- function(fit, effect, prob = 0.95, sd_multiplier = 1,
+                                     sd_slice = NULL, resolution = 100, ...) {
+  res <- conditional_effects(
+    fit, effect,
+    prob = prob,
+    sd_multiplier = sd_multiplier,
+    sd_slice = sd_slice,
+    resolution = resolution
+  )
   plot(res, ...)
 }
 
@@ -701,4 +760,3 @@ plot_test_info <- function(fit, ...) {
   res <- test_info(fit, ...)
   plot(res, ...)
 }
-

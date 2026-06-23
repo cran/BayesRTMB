@@ -283,13 +283,11 @@ rtmb_corr <- function(x = NULL, data = NULL, ID = NULL,
        prior <- prior_weak()
      }
 
-     if (!inherits(prior, "rtmb_prior")) {
-       stop(
-         "prior must be an object of class 'rtmb_prior'. ",
-         "Use prior_flat(), prior_normal(), or prior_weak().",
-         call. = FALSE
-       )
-     }
+     prior <- .validate_prior_type(
+       prior,
+       allowed = c("flat", "normal", "weak"),
+       context = "rtmb_corr()"
+     )
 
      prior_type <- prior$type
 
@@ -420,7 +418,15 @@ rtmb_corr <- function(x = NULL, data = NULL, ID = NULL,
        }
      }
 
+     data_list <- list(Y = Y_mat, group_id = group_id, N = N, P = P, J = J, P_y = P_y, P_x = P_x)
+     if (use_weak_info) {
+       data_list$mid_y <- mid_y_val
+       data_list$alpha_prior_sd <- half_d_y
+       data_list$sigma_rate_vec <- 1.0 / base_scale
+     }
+
      mdl_code <- list(setup = setup_ast, parameters = param_ast, transform = transform_ast, model = model_ast, env = parent.frame())
+     mdl_code$setup_env <- .rtmb_setup_env(environment(), setup_ast, exclude = names(data_list))
      if (!is.null(generate_ast)) mdl_code$generate <- .rtmb_waic_generate_ast(NULL, generate_ast)
      class(mdl_code) <- "rtmb_code"
 
@@ -435,13 +441,6 @@ rtmb_corr <- function(x = NULL, data = NULL, ID = NULL,
            v_names$B_pcorr <- list(target_names, target_names)
            v_names$W_pcorr <- list(target_names, target_names)
        }
-     }
-
-     data_list <- list(Y = Y_mat, group_id = group_id, N = N, P = P, J = J, P_y = P_y, P_x = P_x)
-     if (use_weak_info) {
-       data_list$mid_y <- mid_y_val
-       data_list$alpha_prior_sd <- half_d_y
-       data_list$sigma_rate_vec <- 1.0 / base_scale
      }
 
      init_list <- list(mu = colMeans(Y_mat))
@@ -490,13 +489,11 @@ rtmb_corr <- function(x = NULL, data = NULL, ID = NULL,
        prior <- prior_weak()
      }
 
-     if (!inherits(prior, "rtmb_prior")) {
-       stop(
-         "prior must be an object of class 'rtmb_prior'. ",
-         "Use prior_flat(), prior_normal(), or prior_weak().",
-         call. = FALSE
-       )
-     }
+     prior <- .validate_prior_type(
+       prior,
+       allowed = c("flat", "normal", "weak"),
+       context = "rtmb_corr()"
+     )
 
      prior_type <- prior$type
 
@@ -630,6 +627,7 @@ rtmb_corr <- function(x = NULL, data = NULL, ID = NULL,
        dat_list$alpha_prior_sd <- alpha_prior_sd_val
        dat_list$sigma_rate_vec <- sigma_rate_val
      }
+     mdl_code$setup_env <- .rtmb_setup_env(environment(), setup_ast, exclude = names(dat_list))
 
      v_names <- list(mean = var_names, sd = var_names)
      if (P == 2) {

@@ -60,3 +60,12 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 # mdl <- rtmb_ttest(sat ~ cond, data = debate)
 # mdl$print_code()
 
+## -----------------------------------------------------------------------------
+# mdl_int <- rtmb_lm(sat ~ talk * perf, data = debate)
+# fit_int <- mdl_int$sample()
+# 
+# ce <- conditional_effects(fit_int, effect = "talk:perf")
+# plot(ce)
+# 
+# simple_effects(fit_int, effect = "talk:perf")
+

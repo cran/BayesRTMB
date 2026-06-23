@@ -89,7 +89,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 # fit_int <- mdl_int$sample()
 # 
 # # Visualize the interaction effect
-# # For continuous moderators, it automatically shows Mean ± 1SD
+# # For continuous moderators, it automatically shows Mean +/- 1SD
 # ce <- conditional_effects(fit_int, effect = "talk:perf")
 # plot(ce)
 

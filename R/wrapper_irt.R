@@ -59,15 +59,11 @@ rtmb_irt <- function(data, model = c("2PL", "1PL", "3PL"), type = c("binary", "o
   if (is.null(person_names)) person_names <- paste0("Person", 1:nrow(Y))
 
   # Prior Handling
-  if (is.null(prior)) prior <- prior_flat()
-
-  if (!inherits(prior, "rtmb_prior")) {
-    stop(
-      "prior must be an object of class 'rtmb_prior'. ",
-      "Use prior_flat(), prior_normal(), or prior_weak().",
-      call. = FALSE
-    )
-  }
+  prior <- .validate_prior_type(
+    prior,
+    allowed = c("flat", "normal", "weak"),
+    context = "rtmb_irt()"
+  )
 
   prior_type <- prior$type
   
@@ -182,7 +178,7 @@ rtmb_irt <- function(data, model = c("2PL", "1PL", "3PL"), type = c("binary", "o
 
   if (isTRUE(WAIC)) {
     gq_body <- list(
-      quote(log_lik <- numeric(N_obs)),
+      quote(log_lik <- rtmb_vector(0, N_obs)),
       quote(for (i in 1:N_obs) {})
     )
     gq_loop_body <- list(
@@ -241,6 +237,7 @@ rtmb_irt <- function(data, model = c("2PL", "1PL", "3PL"), type = c("binary", "o
     if (model == "3PL") init$c <- rep(0.1, length(item_names))
   }
 
+  code_obj$setup_env <- .rtmb_setup_env(environment(), setup_ast, exclude = "Y")
   obj <- rtmb_model(data = list(Y = Y), code = code_obj, par_names = par_names_list,
                     init = init, fixed = fixed, view = view_vars)
   obj$type <- "irt"

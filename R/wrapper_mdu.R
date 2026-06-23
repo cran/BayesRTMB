@@ -77,14 +77,6 @@ make_init_mdu <- function(Y, D, distance = c("squared", "euclidean"),
   init_delta <- init_delta_tri
   init_theta <- sweep(init_theta, 2, colMeans(init_theta), "-")
 
-  init_alpha <- if (alpha == "random") {
-    a <- colMeans(Y, na.rm = TRUE)
-    a[!is.finite(a)] <- mean(Y, na.rm = TRUE)
-    as.numeric(a)
-  } else {
-    mean(Y, na.rm = TRUE)
-  }
-
   D_sq <- matrix(NA_real_, N, M)
   for (i in seq_len(N)) {
     for (j in seq_len(M)) {
@@ -93,17 +85,61 @@ make_init_mdu <- function(Y, D, distance = c("squared", "euclidean"),
   }
   D_used <- if (distance == "squared") D_sq + distance_eps else sqrt(D_sq + distance_eps)
 
-  alpha_for_mu <- if (length(init_alpha) == M) {
-    matrix(init_alpha, N, M, byrow = TRUE)
+  y_obs <- is.finite(Y)
+  y_vals <- as.numeric(Y[y_obs])
+  d_vals <- as.numeric(D_used[y_obs])
+  item_idx <- col(Y)[y_obs]
+  grand_mean <- mean(y_vals)
+
+  if (alpha == "random") {
+    y_bar <- colMeans(Y, na.rm = TRUE)
+    d_bar <- colMeans(D_used, na.rm = TRUE)
+    y_bar[!is.finite(y_bar)] <- grand_mean
+    d_bar[!is.finite(d_bar)] <- mean(d_vals)
+    y_centered <- y_vals - y_bar[item_idx]
+    d_centered <- d_vals - d_bar[item_idx]
   } else {
-    matrix(init_alpha, N, M)
+    y_bar <- grand_mean
+    d_bar <- mean(d_vals)
+    y_centered <- y_vals - y_bar
+    d_centered <- d_vals - d_bar
+  }
+
+  denom <- sum(d_centered^2)
+  beta_hat <- if (is.finite(denom) && denom > 0) {
+    -sum(d_centered * y_centered) / denom
+  } else {
+    NA_real_
+  }
+
+  if (is.finite(beta_hat) && beta_hat > 1e-6) {
+    coord_scale <- if (distance == "squared") sqrt(beta_hat) else beta_hat
+    init_theta <- init_theta * coord_scale
+    init_delta <- init_delta * coord_scale
+    D_sq <- D_sq * coord_scale^2
+    D_used <- if (distance == "squared") D_sq + distance_eps else sqrt(D_sq + distance_eps)
+    init_beta <- 1
+    init_alpha <- y_bar + beta_hat * d_bar
+  } else {
+    init_beta <- 1
+    init_alpha <- if (alpha == "random") {
+      a <- colMeans(Y + D_used, na.rm = TRUE)
+      a[!is.finite(a)] <- mean(y_vals + d_vals)
+      as.numeric(a)
+    } else {
+      mean(y_vals + d_vals)
+    }
+  }
+
+  if (alpha == "random") {
+    init_alpha <- as.numeric(init_alpha)
+    alpha_for_mu <- matrix(init_alpha, N, M, byrow = TRUE)
+  } else {
+    init_alpha <- as.numeric(init_alpha)
+    alpha_for_mu <- matrix(init_alpha, N, M)
   }
 
   utility_init <- alpha_for_mu - D_used
-  init_beta <- sum(Y * utility_init, na.rm = TRUE) / sum(utility_init^2, na.rm = TRUE)
-  if (!is.finite(init_beta) || init_beta <= 0) init_beta <- 1
-  init_beta <- max(init_beta, 1e-4)
-
   mu <- init_beta * utility_init
   init_sigma <- apply(Y - mu, 2, stats::sd, na.rm = TRUE)
   y_sd <- stats::sd(as.numeric(Y), na.rm = TRUE)
@@ -592,11 +628,13 @@ make_ydif_from_bw <- function(Best, Worst, sets) {
 #'   for `method = "Best-Worst"`, `Worst`. For `method = "Best-Worst"`, a
 #'   single matrix/data frame is treated as pre-coded `Y_dif` pair indices.
 #' @param ndim Number of unfolding dimensions.
-#' @param distance Character; `"squared"` uses squared Euclidean distance
-#'   (default, often easier for optimization), while `"euclidean"` uses Euclidean
-#'   distance.
+#' @param distance Character; `"euclidean"` uses Euclidean distance (default),
+#'   while `"squared"` uses squared Euclidean distance.
 #' @param alpha Character; `"random"` estimates item-specific alpha values as
 #'   random effects (default), while `"fix"` estimates a single common alpha.
+#' @param lambda Character; for choice methods, `"fix"` estimates a common
+#'   inverse-temperature parameter (default), while `"random"` estimates
+#'   person-specific inverse-temperature parameters with a log-normal hierarchy.
 #' @param method Character; `"rating"` for continuous ratings, `"Best"` for
 #'   best-only choice tasks, `"Best-Worst"` for best-worst choice tasks, or
 #'   `"MDS"` for fitting a multidimensional scaling model to a distance matrix.
@@ -622,8 +660,9 @@ make_ydif_from_bw <- function(Best, Worst, sets) {
 #' @example inst/examples/ex_mdu.R
 #' @export
 rtmb_mdu <- function(data, ndim = 2,
-                     distance = c("squared", "euclidean"),
+                     distance = c("euclidean", "squared"),
                      alpha = c("random", "fix"),
+                     lambda = c("fix", "random"),
                      method = c("rating", "Best", "Best-Worst", "MDS"),
                      sets = NULL,
                      prior = prior_flat(), y_range = NULL,
@@ -632,15 +671,17 @@ rtmb_mdu <- function(data, ndim = 2,
                      missing = c("listwise", "fiml"), WAIC = FALSE) {
 
   missing_arg <- match.arg(missing)
-  distance_missing <- missing(distance)
   method <- match.arg(method)
-  if (method == "MDS" && distance_missing) {
+  if (is.null(distance)) {
     distance <- "euclidean"
-    message("method = 'MDS' uses distance = 'euclidean' by default.")
   } else {
     distance <- match.arg(distance)
   }
   alpha_type <- match.arg(alpha)
+  lambda_type <- match.arg(lambda)
+  if (lambda_type != "fix" && method %in% c("rating", "MDS")) {
+    stop("'lambda = \"random\"' is only available for method = 'Best' or 'Best-Worst'.", call. = FALSE)
+  }
   if (isTRUE(WAIC) && method == "rating" && missing_arg != "listwise") {
     stop("WAIC = TRUE is currently supported for rating MDU only with missing = 'listwise'.", call. = FALSE)
   }
@@ -707,13 +748,11 @@ rtmb_mdu <- function(data, ndim = 2,
   if (!is.null(y_range) && inherits(prior, "rtmb_prior") && identical(prior$type, "flat")) {
     prior <- prior_weak()
   }
-  if (!inherits(prior, "rtmb_prior")) {
-    stop(
-      "prior must be an object of class 'rtmb_prior'. ",
-      "Use prior_flat(), prior_normal(), or prior_weak().",
-      call. = FALSE
-    )
-  }
+  prior <- .validate_prior_type(
+    prior,
+    allowed = c("flat", "normal", "weak"),
+    context = "rtmb_mdu()"
+  )
 
   prior_type <- prior$type
   if (prior_type == "weak" && method == "rating" && is.null(y_range)) {
@@ -728,6 +767,9 @@ rtmb_mdu <- function(data, ndim = 2,
   delta_sd <- prior$delta_sd %||% prior$tau_sd %||% 1
   theta_sd <- prior$theta_sd %||% 1
   lambda_rate <- prior$lambda_rate %||% (1 / 2.5)
+  lambda_mu_mean <- prior$lambda_mu_mean %||% log(1 / lambda_rate)
+  lambda_mu_sd <- prior$lambda_mu_sd %||% prior$mu_sd %||% 2.5
+  sigma_lambda_rate <- prior$sigma_lambda_rate %||% prior$sigma_alpha_rate %||% (1 / 2.5)
 
   if (prior_type == "weak" && method == "rating") {
     y_range <- as.numeric(y_range)
@@ -803,7 +845,7 @@ rtmb_mdu <- function(data, ndim = 2,
     if (isTRUE(WAIC)) {
       pair_ll_ast <- if (distance == "squared") {
         quote({
-          log_lik <- numeric(N * (N - 1) / 2)
+          log_lik <- rtmb_vector(0, N * (N - 1) / 2)
           idx_ll <- 1
           for (i in 1:(N - 1)) {
             for (j in (i + 1):N) {
@@ -815,7 +857,7 @@ rtmb_mdu <- function(data, ndim = 2,
         })
       } else {
         quote({
-          log_lik <- numeric(N * (N - 1) / 2)
+          log_lik <- rtmb_vector(0, N * (N - 1) / 2)
           idx_ll <- 1
           for (i in 1:(N - 1)) {
             for (j in (i + 1):N) {
@@ -970,7 +1012,7 @@ rtmb_mdu <- function(data, ndim = 2,
     if (isTRUE(WAIC)) {
       rating_ll_ast <- if (distance == "squared" && alpha_type == "random") {
         quote({
-          log_lik <- numeric(N * M)
+          log_lik <- rtmb_vector(0, N * M)
           idx_ll <- 1
           for (i in 1:N) for (j in 1:M) {
             d_ij <- squared_distance(theta[i, ], delta[j, ]) + distance_eps
@@ -981,7 +1023,7 @@ rtmb_mdu <- function(data, ndim = 2,
         })
       } else if (distance == "squared") {
         quote({
-          log_lik <- numeric(N * M)
+          log_lik <- rtmb_vector(0, N * M)
           idx_ll <- 1
           for (i in 1:N) for (j in 1:M) {
             d_ij <- squared_distance(theta[i, ], delta[j, ]) + distance_eps
@@ -992,7 +1034,7 @@ rtmb_mdu <- function(data, ndim = 2,
         })
       } else if (alpha_type == "random") {
         quote({
-          log_lik <- numeric(N * M)
+          log_lik <- rtmb_vector(0, N * M)
           idx_ll <- 1
           for (i in 1:N) for (j in 1:M) {
             d_ij <- distance(theta[i, ], delta[j, ]) + distance_eps
@@ -1003,7 +1045,7 @@ rtmb_mdu <- function(data, ndim = 2,
         })
       } else {
         quote({
-          log_lik <- numeric(N * M)
+          log_lik <- rtmb_vector(0, N * M)
           idx_ll <- 1
           for (i in 1:N) for (j in 1:M) {
             d_ij <- distance(theta[i, ], delta[j, ]) + distance_eps
@@ -1048,7 +1090,10 @@ rtmb_mdu <- function(data, ndim = 2,
       delta_sd = delta_sd,
       theta_sd = theta_sd,
       sigma_alpha_rate = sigma_alpha_rate,
-      lambda_rate = lambda_rate
+      lambda_rate = lambda_rate,
+      lambda_mu_mean = lambda_mu_mean,
+      lambda_mu_sd = lambda_mu_sd,
+      sigma_lambda_rate = sigma_lambda_rate
     )
     if (method == "Best") {
       dat_mdu$Y_best <- choice_data$Y_best
@@ -1089,27 +1134,44 @@ rtmb_mdu <- function(data, ndim = 2,
       })
     }
 
-    param_ast <- if (alpha_type == "random") {
-      bquote({
-        delta <- Dim(c(M, D), type = "centered_tri", random = TRUE)
-        theta <- Dim(c(N, D), random = TRUE)
-        alpha_raw <- Dim(M, type = "centered", random = TRUE)
-        sigma_alpha <- Dim(1, lower = 0)
-        lambda <- Dim(1, lower = 0)
-      })
+    param_exprs <- list(
+      quote(delta <- Dim(c(M, D), type = "centered_tri", random = TRUE)),
+      quote(theta <- Dim(c(N, D), random = TRUE))
+    )
+    if (alpha_type == "random") {
+      param_exprs <- c(
+        param_exprs,
+        list(
+          quote(alpha_raw <- Dim(M, type = "centered", random = TRUE)),
+          quote(sigma_alpha <- Dim(1, lower = 0))
+        )
+      )
     } else {
-      bquote({
-        delta <- Dim(c(M, D), type = "centered_tri", random = TRUE)
-        theta <- Dim(c(N, D), random = TRUE)
-        alpha <- Dim()
-        lambda <- Dim(1, lower = 0)
-      })
+      param_exprs <- c(param_exprs, list(quote(alpha <- Dim())))
     }
+    if (lambda_type == "random") {
+      param_exprs <- c(
+        param_exprs,
+        list(
+          quote(lambda_mu <- Dim()),
+          quote(sigma_lambda <- Dim(1, lower = 0)),
+          quote(lambda_raw <- Dim(N, type = "centered", random = TRUE))
+        )
+      )
+    } else {
+      param_exprs <- c(param_exprs, list(quote(lambda <- Dim(1, lower = 0))))
+    }
+    param_ast <- as.call(c(list(as.name("{")), param_exprs))
 
-    transform_ast <- if (alpha_type == "random") {
-      quote({
-        alpha <- alpha_raw * sigma_alpha
-      })
+    transform_exprs <- list()
+    if (alpha_type == "random") {
+      transform_exprs <- c(transform_exprs, list(quote(alpha <- alpha_raw * sigma_alpha)))
+    }
+    if (lambda_type == "random") {
+      transform_exprs <- c(transform_exprs, list(quote(lambda <- exp(lambda_mu + sigma_lambda * lambda_raw))))
+    }
+    transform_ast <- if (length(transform_exprs) > 0L) {
+      as.call(c(list(as.name("{")), transform_exprs))
     } else {
       NULL
     }
@@ -1132,13 +1194,16 @@ rtmb_mdu <- function(data, ndim = 2,
       })
     }
 
+    lambda_scalar_expr <- if (lambda_type == "random") quote(lambda[n]) else quote(lambda)
+    lambda_utility_expr <- bquote(.(lambda_scalar_expr) * U_set)
+
     likelihood_ast <- if (method == "Best") {
       bquote(for (n in 1:N) {
         U <- rep(alpha[1] * 0, M)
         .(utility_ast)
         for (p in 1:P) {
           U_set <- U[S[p, ]]
-          Y_best[n, p] ~ categorical_logit(lambda * U_set)
+          Y_best[n, p] ~ categorical_logit(.(lambda_utility_expr))
         }
       })
     } else {
@@ -1147,7 +1212,7 @@ rtmb_mdu <- function(data, ndim = 2,
         .(utility_ast)
         for (p in 1:P) {
           U_set <- U[S[p, ]]
-          Y_dif[n, p] ~ bw_categorical_logit(U_set, lambda)
+          Y_dif[n, p] ~ bw_categorical_logit(U_set, .(lambda_scalar_expr))
         }
       })
     }
@@ -1161,7 +1226,11 @@ rtmb_mdu <- function(data, ndim = 2,
     } else if (prior_type %in% c("normal", "weak")) {
       model_exprs[[length(model_exprs) + 1]] <- quote(alpha ~ normal(mu_alpha_init, alpha_sd))
     }
-    if (prior_type %in% c("normal", "weak")) {
+    if (lambda_type == "random") {
+      model_exprs[[length(model_exprs) + 1]] <- quote(lambda_raw ~ centered_multi_normal(1))
+      model_exprs[[length(model_exprs) + 1]] <- quote(lambda_mu ~ normal(lambda_mu_mean, lambda_mu_sd))
+      model_exprs[[length(model_exprs) + 1]] <- quote(sigma_lambda ~ exponential(sigma_lambda_rate))
+    } else if (prior_type %in% c("normal", "weak")) {
       model_exprs[[length(model_exprs) + 1]] <- quote(lambda ~ exponential(lambda_rate))
     }
     model_ast <- as.call(c(list(as.name("{")), model_exprs))
@@ -1171,28 +1240,28 @@ rtmb_mdu <- function(data, ndim = 2,
     if (isTRUE(WAIC)) {
       choice_ll_ast <- if (method == "Best") {
         bquote({
-          log_lik <- numeric(N * P)
+          log_lik <- rtmb_vector(0, N * P)
           idx_ll <- 1
           for (n in 1:N) {
             U <- rep(alpha[1] * 0, M)
             .(utility_ast)
             for (p in 1:P) {
               U_set <- U[S[p, ]]
-              log_lik[idx_ll] <- categorical_logit_lpmf(Y_best[n, p], lambda * U_set)
+              log_lik[idx_ll] <- categorical_logit_lpmf(Y_best[n, p], .(lambda_utility_expr))
               idx_ll <- idx_ll + 1
             }
           }
         })
       } else {
         bquote({
-          log_lik <- numeric(N * P)
+          log_lik <- rtmb_vector(0, N * P)
           idx_ll <- 1
           for (n in 1:N) {
             U <- rep(alpha[1] * 0, M)
             .(utility_ast)
             for (p in 1:P) {
               U_set <- U[S[p, ]]
-              log_lik[idx_ll] <- bw_categorical_logit_lpmf(Y_dif[n, p], U_set, lambda)
+              log_lik[idx_ll] <- bw_categorical_logit_lpmf(Y_dif[n, p], U_set, .(lambda_scalar_expr))
               idx_ll <- idx_ll + 1
             }
           }
@@ -1206,6 +1275,14 @@ rtmb_mdu <- function(data, ndim = 2,
       init <- .make_init_mdu_choice(choice_data$score_mat, D)
       if (alpha_type == "fix") init <- init[setdiff(names(init), c("alpha_raw", "sigma_alpha"))]
       if (alpha_type == "fix") init$alpha <- 0
+      if (lambda_type == "random") {
+        lambda_init <- init$lambda %||% 1
+        lambda_init <- max(as.numeric(lambda_init)[1], 1e-6)
+        init$lambda_mu <- log(lambda_init)
+        init$sigma_lambda <- 0.25
+        init$lambda_raw <- rep(0, N)
+        init$lambda <- NULL
+      }
     }
 
     par_names_list <- list(
@@ -1213,13 +1290,14 @@ rtmb_mdu <- function(data, ndim = 2,
       theta = list(person_names, dim_names)
     )
     if (alpha_type == "random") par_names_list$alpha_raw <- item_names
+    if (lambda_type == "random") par_names_list$lambda_raw <- person_names
 
     if (is.null(view)) {
-      view <- if (alpha_type == "random") {
-        c("lambda", "sigma_alpha", "alpha", "delta")
-      } else {
-        c("lambda", "alpha", "delta")
-      }
+      view <- c(
+        if (lambda_type == "random") c("lambda_mu", "sigma_lambda", "lambda") else "lambda",
+        if (alpha_type == "random") c("sigma_alpha", "alpha") else "alpha",
+        "delta"
+      )
     }
   }
 
@@ -1236,8 +1314,24 @@ rtmb_mdu <- function(data, ndim = 2,
       init$alpha_raw <- NULL
       init$sigma_alpha <- NULL
     }
+    if (lambda_type == "fix") {
+      init$lambda_mu <- NULL
+      init$sigma_lambda <- NULL
+      init$lambda_raw <- NULL
+    } else {
+      if (!is.null(init$lambda)) {
+        if (is.null(init$lambda_mu)) {
+          lambda_init <- max(as.numeric(init$lambda)[1], 1e-6)
+          init$lambda_mu <- log(lambda_init)
+        }
+        init$lambda <- NULL
+      }
+      if (is.null(init$sigma_lambda)) init$sigma_lambda <- 0.25
+      if (is.null(init$lambda_raw) && exists("N", inherits = FALSE)) init$lambda_raw <- rep(0, N)
+    }
   }
 
+  code_obj$setup_env <- .rtmb_setup_env(environment(), setup_ast, exclude = names(dat_mdu))
   obj <- rtmb_model(
     data = dat_mdu,
     code = code_obj,
@@ -1252,6 +1346,7 @@ rtmb_mdu <- function(data, ndim = 2,
     prior_type = prior$type,
     method = method,
     alpha = alpha_type,
+    lambda = lambda_type,
     input = if (method == "rating") "rating" else if (method == "MDS") "distance" else choice_data$input,
     distance = distance,
     marginal = if (method == "MDS") "delta" else c("delta", "theta"),

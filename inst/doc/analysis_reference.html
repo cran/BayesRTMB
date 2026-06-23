@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>BayesRTMB Analysis Reference</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">BayesRTMB Analysis Reference</h1>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#how-to-read-this-page" id="toc-how-to-read-this-page">0.
+How To Read This Page</a>
+<ul>
+<li><a href="#goal-oriented-quick-navigation" id="toc-goal-oriented-quick-navigation">Goal-Oriented Quick
+Navigation</a></li>
+</ul></li>
+<li><a href="#analysis-workflow" id="toc-analysis-workflow">1. Analysis
+Workflow</a>
+<ul>
+<li><a href="#choosing-an-estimation-method" id="toc-choosing-an-estimation-method">1.1 Choosing An Estimation
+Method</a></li>
+</ul></li>
+<li><a href="#function-overview" id="toc-function-overview">2. Function
+Overview</a>
+<ul>
+<li><a href="#model-definition" id="toc-model-definition">2.1 Model
+Definition</a></li>
+<li><a href="#wrapper-functions" id="toc-wrapper-functions">2.2 Wrapper
+Functions</a></li>
+<li><a href="#estimation-methods" id="toc-estimation-methods">2.3
+Estimation Methods</a></li>
+</ul></li>
+<li><a href="#common-fit-object-methods" id="toc-common-fit-object-methods">3. Common Fit-Object Methods</a>
+<ul>
+<li><a href="#estimate-eap-and-map" id="toc-estimate-eap-and-map">3.1
+<code>estimate()</code>, <code>EAP()</code>, and
+<code>MAP()</code></a></li>
+<li><a href="#pars-and-component" id="toc-pars-and-component">3.2
+<code>pars</code> And <code>component</code></a></li>
+</ul></li>
+<li><a href="#mcmc-fit" id="toc-mcmc-fit">4. MCMC_Fit</a>
+<ul>
+<li><a href="#main-methods" id="toc-main-methods">4.1 Main
+Methods</a></li>
+<li><a href="#draws" id="toc-draws">4.2 <code>draws()</code></a></li>
+<li><a href="#summary-and-diagnose" id="toc-summary-and-diagnose">4.3
+<code>summary()</code> And <code>diagnose()</code></a></li>
+<li><a href="#transformed_draws-and-generated_quantities" id="toc-transformed_draws-and-generated_quantities">4.4
+<code>transformed_draws()</code> And
+<code>generated_quantities()</code></a></li>
+<li><a href="#bridge-sampling-and-bayes-factors" id="toc-bridge-sampling-and-bayes-factors">4.5 Bridge Sampling And Bayes
+Factors</a></li>
+<li><a href="#waic" id="toc-waic">4.6 WAIC</a></li>
+</ul></li>
+<li><a href="#map-fit" id="toc-map-fit">5. MAP_Fit</a>
+<ul>
+<li><a href="#main-methods-1" id="toc-main-methods-1">5.1 Main
+Methods</a></li>
+<li><a href="#num_estimate-and-the-best-run" id="toc-num_estimate-and-the-best-run">5.2 <code>num_estimate</code> And
+The Best Run</a></li>
+<li><a href="#using-optimization-results-as-initial-or-fixed-values" id="toc-using-optimization-results-as-initial-or-fixed-values">5.3 Using
+Optimization Results As Initial Or Fixed Values</a></li>
+<li><a href="#profile" id="toc-profile">5.4
+<code>profile()</code></a></li>
+<li><a href="#waic-for-map-fits" id="toc-waic-for-map-fits">5.5 WAIC For
+MAP Fits</a></li>
+</ul></li>
+<li><a href="#vb-fit" id="toc-vb-fit">6. VB_Fit</a>
+<ul>
+<li><a href="#main-methods-2" id="toc-main-methods-2">6.1 Main
+Methods</a></li>
+<li><a href="#num_estimate-and-best-estimate" id="toc-num_estimate-and-best-estimate">6.2 <code>num_estimate</code>
+And Best Estimate</a></li>
+<li><a href="#checking-convergence-with-plot_elbo" id="toc-checking-convergence-with-plot_elbo">6.3 Checking Convergence
+With <code>plot_elbo()</code></a></li>
+<li><a href="#waic-for-vb-fits" id="toc-waic-for-vb-fits">6.4 WAIC For
+VB Fits</a></li>
+</ul></li>
+<li><a href="#classic-fit" id="toc-classic-fit">7. Classic_Fit</a>
+<ul>
+<li><a href="#main-methods-3" id="toc-main-methods-3">7.1 Main
+Methods</a></li>
+<li><a href="#anova" id="toc-anova">7.2 ANOVA</a></li>
+<li><a href="#aic-bic-and-loglik" id="toc-aic-bic-and-loglik">7.3 AIC,
+BIC, And <code>logLik</code></a></li>
+<li><a href="#robust_se" id="toc-robust_se">7.4
+<code>robust_se()</code></a></li>
+<li><a href="#lsmeans" id="toc-lsmeans">7.5
+<code>lsmeans()</code></a></li>
+</ul></li>
+<li><a href="#model-comparison" id="toc-model-comparison">8. Model
+Comparison And Evaluation Criteria</a>
+<ul>
+<li><a href="#bayes-factor" id="toc-bayes-factor">8.1 Bayes
+Factor</a></li>
+<li><a href="#waic-1" id="toc-waic-1">8.2 WAIC</a></li>
+<li><a href="#aicbic" id="toc-aicbic">8.3 AIC/BIC</a></li>
+<li><a href="#elbo" id="toc-elbo">8.4 ELBO</a></li>
+</ul></li>
+<li><a href="#fixed-parameters" id="toc-fixed-parameters">9. Fixing
+Parameters With <code>fixed</code></a>
+<ul>
+<li><a href="#checking-parameter-names" id="toc-checking-parameter-names">9.1 Checking Parameter Names</a></li>
+<li><a href="#internal-handling-of-fixed" id="toc-internal-handling-of-fixed">9.2 Internal Handling Of
+<code>fixed</code></a></li>
+<li><a href="#limitations-of-fixed" id="toc-limitations-of-fixed">9.3
+Limitations Of <code>fixed</code></a></li>
+<li><a href="#using-optimization-results-as-fixed-values" id="toc-using-optimization-results-as-fixed-values">9.4 Using
+Optimization Results As Fixed Values</a></li>
+<li><a href="#using-mcmc-results-as-fixed-values" id="toc-using-mcmc-results-as-fixed-values">9.5 Using MCMC Results As
+Fixed Values</a></li>
+<li><a href="#fixed-and-bayes-factors" id="toc-fixed-and-bayes-factors">9.6 <code>fixed</code> And Bayes
+Factors</a></li>
+</ul></li>
+<li><a href="#rtmb-code-blocks" id="toc-rtmb-code-blocks">10.
+<code>rtmb_code()</code> Blocks</a>
+<ul>
+<li><a href="#what-belongs-in-setup" id="toc-what-belongs-in-setup">10.1
+What Belongs In <code>setup</code></a></li>
+<li><a href="#what-belongs-in-transform" id="toc-what-belongs-in-transform">10.2 What Belongs In
+<code>transform</code></a></li>
+<li><a href="#what-belongs-in-generate" id="toc-what-belongs-in-generate">10.3 What Belongs In
+<code>generate</code></a></li>
+<li><a href="#choosing-between-transform-and-generate" id="toc-choosing-between-transform-and-generate">10.4 Choosing Between
+<code>transform</code> And <code>generate</code></a></li>
+</ul></li>
+<li><a href="#parameter-declarations-and-types" id="toc-parameter-declarations-and-types">11. Parameter Declarations And
+Types</a>
+<ul>
+<li><a href="#dimensions" id="toc-dimensions">11.1 Dimensions</a></li>
+<li><a href="#constraints" id="toc-constraints">11.2
+Constraints</a></li>
+<li><a href="#random-true" id="toc-random-true">11.3
+<code>random = TRUE</code></a></li>
+</ul></li>
+<li><a href="#distribution-overview" id="toc-distribution-overview">12.
+Distribution Overview</a>
+<ul>
+<li><a href="#continuous-distributions" id="toc-continuous-distributions">12.1 Continuous Distributions</a></li>
+<li><a href="#discrete-distributions" id="toc-discrete-distributions">12.2 Discrete Distributions</a></li>
+<li><a href="#multivariate-and-matrix-distributions" id="toc-multivariate-and-matrix-distributions">12.3 Multivariate And
+Matrix Distributions</a></li>
+<li><a href="#mixtures-and-special-distributions" id="toc-mixtures-and-special-distributions">12.4 Mixtures And Special
+Distributions</a></li>
+</ul></li>
+<li><a href="#math-and-stabilization-functions" id="toc-math-and-stabilization-functions">13. Math And Stabilization
+Functions</a></li>
+<li><a href="#ad-taping-and-performance" id="toc-ad-taping-and-performance">14. AD Taping And Performance</a>
+<ul>
+<li><a href="#use-setup" id="toc-use-setup">14.1 Use
+<code>setup</code></a></li>
+<li><a href="#prefer-vectorization" id="toc-prefer-vectorization">14.2
+Prefer Vectorization</a></li>
+<li><a href="#avoid-apply-style-functions-in-ad-code" id="toc-avoid-apply-style-functions-in-ad-code">14.3 Avoid
+<code>apply</code>-Style Functions In AD Code</a></li>
+<li><a href="#notes-on-if-and-ifelse" id="toc-notes-on-if-and-ifelse">14.4 Notes On <code>if</code> And
+<code>ifelse</code></a></li>
+<li><a href="#rtmb_vector-and-rtmb_array" id="toc-rtmb_vector-and-rtmb_array">14.5 <code>rtmb_vector()</code> And
+<code>rtmb_array()</code></a></li>
+<li><a href="#taping-time-and-ad-evaluation-speed" id="toc-taping-time-and-ad-evaluation-speed">14.6 Taping Time And AD
+Evaluation Speed</a></li>
+<li><a href="#patterns-to-avoid-inside-ad-tapes" id="toc-patterns-to-avoid-inside-ad-tapes">14.7 Patterns To Avoid Inside
+AD Tapes</a></li>
+</ul></li>
+<li><a href="#common-recipes" id="toc-common-recipes">15. Common
+Recipes</a>
+<ul>
+<li><a href="#get-only-estimates-from-mcmc" id="toc-get-only-estimates-from-mcmc">15.1 Get Only Estimates From
+MCMC</a></li>
+<li><a href="#use-map-initial-values-for-mcmc" id="toc-use-map-initial-values-for-mcmc">15.2 Use MAP Initial Values For
+MCMC</a></li>
+<li><a href="#extract-only-generated-quantities" id="toc-extract-only-generated-quantities">15.3 Extract Only Generated
+Quantities</a></li>
+<li><a href="#extract-draws-including-random-effects" id="toc-extract-draws-including-random-effects">15.4 Extract Draws
+Including Random Effects</a></li>
+<li><a href="#check-vb-convergence" id="toc-check-vb-convergence">15.5
+Check VB Convergence</a></li>
+<li><a href="#compare-models-with-classic-estimation" id="toc-compare-models-with-classic-estimation">15.6 Compare Models With
+Classic Estimation</a></li>
+<li><a href="#compare-coefficient-inclusion-with-a-bayes-factor" id="toc-compare-coefficient-inclusion-with-a-bayes-factor">15.7 Compare
+Coefficient Inclusion With A Bayes Factor</a></li>
+<li><a href="#build-a-fixed-model-explicitly" id="toc-build-a-fixed-model-explicitly">15.8 Build A Fixed Model
+Explicitly</a></li>
+<li><a href="#upgrade-fit" id="toc-upgrade-fit">15.9 Upgrade An Old Fit
+Object</a></li>
+<li><a href="#run-mcmc-in-parallel" id="toc-run-mcmc-in-parallel">15.10
+Run MCMC In Parallel</a></li>
+</ul></li>
+<li><a href="#caveats" id="toc-caveats">16. Caveats</a></li>
+</ul>
+</div>
+
+<p>This page is a reference for checking functions and methods while
+analyzing data with BayesRTMB.</p>
+<p>If you want the overall workflow first, see <a href="quick_start.html">Quick Start</a>. If you want to write custom
+models, see <a href="writing_models.html">Writing Model Codes</a>. If
+you want the details of the inference algorithms, see <a href="rtmb_internals.html">RTMB Internals and Inference Algorithms</a>.
+This page collects the items that you often need to check during an
+analysis.</p>
+<p>The Japanese version of this page is available at <a href="ja-analysis_reference.html">BayesRTMB 分析リファレンス</a>.</p>
+<p>This page is especially intended for the following tasks.</p>
+<ul>
+<li>Quickly check which function to use.</li>
+<li>Check methods and return values for each fit object.</li>
+<li>Compare the roles of MCMC, MAP, VB, and classic estimation.</li>
+<li>Check model comparison tools such as Bayes factors, WAIC, AIC, and
+BIC.</li>
+<li>Check how to fix parameters with <code>fixed</code> and how to build
+constrained models.</li>
+<li>Check distributions, parameter types, and AD-taping notes inside
+<code>rtmb_code()</code>.</li>
+</ul>
+<div id="how-to-read-this-page" class="section level1">
+<h1>0. How To Read This Page</h1>
+<p>Most code chunks on this page use <code>eval = FALSE</code>. Some
+examples are complete examples that can be run as-is, while others are
+partial code fragments intended to be placed inside
+<code>rtmb_code()</code>. When only <code>setup = { ... }</code>,
+<code>model = { ... }</code>, or <code>generate = { ... }</code> is
+shown, read it as the code for that block.</p>
+<p>The name <code>fit</code> is used as a placeholder for any fit
+object. In real analyses, replace it with objects such as
+<code>fit_mcmc</code>, <code>fit_map</code>, <code>fit_vb</code>, or
+<code>fit_classic</code>, depending on the estimation method.</p>
+<p>The following terms are used throughout this page.</p>
+<table>
+<colgroup>
+<col width="22%" />
+<col width="77%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fit object</td>
+<td>Estimation result returned by <code>sample()</code>,
+<code>optimize()</code>, <code>variational()</code>, or
+<code>classic()</code></td>
+</tr>
+<tr class="even">
+<td>primary parameters</td>
+<td>Estimated parameters declared in the <code>parameters</code>
+block</td>
+</tr>
+<tr class="odd">
+<td>transform</td>
+<td>Derived quantities created in the <code>transform</code> block</td>
+</tr>
+<tr class="even">
+<td>generate</td>
+<td>Post-estimation derived quantities created in the
+<code>generate</code> block</td>
+</tr>
+<tr class="odd">
+<td>draw</td>
+<td>Sample from a posterior or approximate posterior distribution</td>
+</tr>
+</tbody>
+</table>
+<div id="goal-oriented-quick-navigation" class="section level2">
+<h2>Goal-Oriented Quick Navigation</h2>
+<table>
+<colgroup>
+<col width="29%" />
+<col width="28%" />
+<col width="41%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Goal</th>
+<th>Start here</th>
+<th>Functions and methods</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Run ordinary Bayesian inference</td>
+<td><a href="#mcmc-fit">Section 4 MCMC_Fit</a></td>
+<td><code>mdl$sample()</code>, <code>fit$summary()</code>,
+<code>fit$diagnose()</code></td>
+</tr>
+<tr class="even">
+<td>Create MAP estimates or MCMC initial values</td>
+<td><a href="#map-fit">Section 5 MAP_Fit</a></td>
+<td><code>mdl$optimize(num_estimate = ...)</code>,
+<code>fit$estimate()</code></td>
+</tr>
+<tr class="odd">
+<td>Explore a model quickly with VB</td>
+<td><a href="#vb-fit">Section 6 VB_Fit</a></td>
+<td><code>mdl$variational()</code>, <code>fit$plot_elbo()</code>,
+<code>fit$diagnose()</code></td>
+</tr>
+<tr class="even">
+<td>Use classic AIC/BIC/ANOVA</td>
+<td><a href="#classic-fit">Section 7 Classic_Fit</a></td>
+<td><code>mdl$classic()</code>, <code>AIC()</code>, <code>BIC()</code>,
+<code>anova()</code></td>
+</tr>
+<tr class="odd">
+<td>Compare models</td>
+<td><a href="#model-comparison">Section 8 Model comparison</a></td>
+<td><code>fit$bayes_factor()</code>, <code>fit$WAIC()</code>,
+<code>AIC()</code>, <code>BIC()</code></td>
+</tr>
+<tr class="even">
+<td>Fix parameters</td>
+<td><a href="#fixed-parameters">Section 9 fixed</a></td>
+<td><code>fixed = list(...)</code>, <code>mdl$fixed_model()</code></td>
+</tr>
+<tr class="odd">
+<td>Write a custom model</td>
+<td><a href="#rtmb-code-blocks">Sections 10-14</a></td>
+<td><code>rtmb_code()</code>, <code>Dim()</code>, distributions,
+AD-taping notes</td>
+</tr>
+<tr class="even">
+<td>Use an old fit object with current methods</td>
+<td><a href="#upgrade-fit">Section 15.9</a></td>
+<td><code>upgrade_fit()</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="analysis-workflow" class="section level1">
+<h1>1. Analysis Workflow</h1>
+<p>A BayesRTMB analysis usually follows this path.</p>
+<pre class="text"><code>wrapper function or rtmb_code()
+  -&gt; RTMB_Model
+    -&gt; sample()       -&gt; MCMC_Fit
+    -&gt; optimize()     -&gt; MAP_Fit
+    -&gt; variational()  -&gt; VB_Fit
+    -&gt; classic()      -&gt; Classic_Fit</code></pre>
+<p>When you use a wrapper function, functions such as
+<code>rtmb_lm()</code> and <code>rtmb_glmer()</code> return an
+<code>RTMB_Model</code> directly.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(BayesRTMB)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">*</span> perf,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">data =</span> debate,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">prior_normal</span>()</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>)</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>fit_map  <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>()</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>fit_vb   <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>()</span></code></pre></div>
+<p>When writing a custom model, define the model with
+<code>rtmb_code()</code> and pass it to <code>rtmb_model()</code>. For
+new users, it is often clearest to pass a data frame as
+<code>data</code> and connect data-frame columns to model variables in
+<code>setup</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>df <span class="ot">&lt;-</span> debate</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>code <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>    Y <span class="ot">&lt;-</span> sat</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>    X <span class="ot">&lt;-</span> talk</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>    center <span class="ot">&lt;-</span> <span class="cf">function</span>(x) x <span class="sc">-</span> <span class="fu">mean</span>(x)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>    X_c <span class="ot">&lt;-</span> <span class="fu">center</span>(X)</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>  },</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>    Intercept <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>    b <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>  },</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> Intercept <span class="sc">+</span> b <span class="sc">*</span> X_c</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>  },</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>    Intercept <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>    b <span class="sc">~</span> <span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>)</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>    sigma <span class="sc">~</span> <span class="fu">exponential</span>(<span class="dv">1</span>)</span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>  }</span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>)</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_model</span>(</span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>  <span class="at">data =</span> df,</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>  <span class="at">code =</span> code</span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>)</span></code></pre></div>
+<p>In this example, <code>data = df</code> makes <code>df$sat</code> and
+<code>df$talk</code> available inside <code>setup</code>. The
+<code>setup</code> block is the place for preprocessing that should be
+decided once before model evaluation, such as handling missing data,
+creating indexes, building design matrices, and defining helper
+functions.</p>
+<p>After estimation, use methods such as <code>summary()</code>,
+<code>estimate()</code>, <code>diagnose()</code>, and
+<code>draws()</code> on the fit object.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">summary</span>()</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">diagnose</span>()</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">EAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">MAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span></code></pre></div>
+<div id="choosing-an-estimation-method" class="section level2">
+<h2>1.1 Choosing An Estimation Method</h2>
+<p>When in doubt, start with this table.</p>
+<table>
+<colgroup>
+<col width="45%" />
+<col width="54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Goal</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Final Bayesian inference</td>
+<td><code>sample()</code></td>
+</tr>
+<tr class="even">
+<td>Check ESS, R-hat, and divergences</td>
+<td><code>MCMC_Fit$diagnose()</code></td>
+</tr>
+<tr class="odd">
+<td>Compute a Bayes factor</td>
+<td><code>MCMC_Fit$bayes_factor()</code></td>
+</tr>
+<tr class="even">
+<td>Compute WAIC</td>
+<td><code>WAIC = TRUE</code> and <code>fit$WAIC()</code></td>
+</tr>
+<tr class="odd">
+<td>Fast point estimation</td>
+<td><code>optimize()</code></td>
+</tr>
+<tr class="even">
+<td>Initial values for MCMC</td>
+<td><code>optimize(num_estimate = ...)</code></td>
+</tr>
+<tr class="odd">
+<td>Explore a large model</td>
+<td><code>variational()</code></td>
+</tr>
+<tr class="even">
+<td>Check VB convergence</td>
+<td><code>VB_Fit$plot_elbo()</code></td>
+</tr>
+<tr class="odd">
+<td>Use AIC/BIC/ANOVA</td>
+<td><code>classic()</code></td>
+</tr>
+<tr class="even">
+<td>Use robust standard errors</td>
+<td><code>Classic_Fit$robust_se()</code></td>
+</tr>
+<tr class="odd">
+<td>Fix parameters</td>
+<td><code>fixed = list(...)</code> or <code>$fixed_model()</code></td>
+</tr>
+<tr class="even">
+<td>Rotate MDU or factor-analysis axes</td>
+<td><code>$rotate()</code> or <code>$fa_rotate()</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="function-overview" class="section level1">
+<h1>2. Function Overview</h1>
+<div id="model-definition" class="section level2">
+<h2>2.1 Model Definition</h2>
+<table>
+<colgroup>
+<col width="19%" />
+<col width="80%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rtmb_code()</code></td>
+<td>Define a model with <code>setup</code>, <code>parameters</code>,
+<code>transform</code>, <code>model</code>, and <code>generate</code>
+blocks</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_model()</code></td>
+<td>Create an <code>RTMB_Model</code> from <code>rtmb_code()</code> and
+data</td>
+</tr>
+<tr class="odd">
+<td><code>Dim()</code></td>
+<td>Declare parameter dimensions, constraints, types, and
+<code>random</code> status</td>
+</tr>
+<tr class="even">
+<td><code>print_code()</code></td>
+<td>Inspect model code generated by a wrapper</td>
+</tr>
+<tr class="odd">
+<td><code>upgrade_fit()</code></td>
+<td>Rebuild old saved fit objects with the current class
+definitions</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="wrapper-functions" class="section level2">
+<h2>2.2 Wrapper Functions</h2>
+<table>
+<colgroup>
+<col width="27%" />
+<col width="72%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Main use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rtmb_lm()</code></td>
+<td>Normal linear regression</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_glm()</code></td>
+<td>Generalized linear models</td>
+</tr>
+<tr class="odd">
+<td><code>rtmb_lmer()</code></td>
+<td>Linear mixed models</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_glmer()</code></td>
+<td>Generalized linear mixed models</td>
+</tr>
+<tr class="odd">
+<td><code>rtmb_ttest()</code></td>
+<td>Bayesian/classic t tests, effect sizes, Bayes factors</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_corr()</code></td>
+<td>Correlations, partial correlations, correlation matrices</td>
+</tr>
+<tr class="odd">
+<td><code>rtmb_fa()</code></td>
+<td>Factor analysis</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_irt()</code></td>
+<td>Item response theory models</td>
+</tr>
+<tr class="odd">
+<td><code>rtmb_lrt()</code></td>
+<td>Latent rank theory</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_mdu()</code></td>
+<td>Multidimensional unfolding</td>
+</tr>
+<tr class="odd">
+<td><code>rtmb_mediation()</code></td>
+<td>Mediation analysis</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_mixture()</code></td>
+<td>Mixture distribution models</td>
+</tr>
+<tr class="odd">
+<td><code>rtmb_table()</code></td>
+<td>Contingency-table models</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_loglinear()</code></td>
+<td>Log-linear models</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="estimation-methods" class="section level2">
+<h2>2.3 Estimation Methods</h2>
+<table>
+<colgroup>
+<col width="20%" />
+<col width="18%" />
+<col width="60%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Return value</th>
+<th>Main use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$sample()</code></td>
+<td><code>MCMC_Fit</code></td>
+<td>Final Bayesian inference, intervals, Bayes factors, WAIC</td>
+</tr>
+<tr class="even">
+<td><code>$optimize()</code></td>
+<td><code>MAP_Fit</code></td>
+<td>MAP/ML/marginal MAP, fast point estimates, initial-value search</td>
+</tr>
+<tr class="odd">
+<td><code>$variational()</code></td>
+<td><code>VB_Fit</code></td>
+<td>Approximate posterior inference and model exploration</td>
+</tr>
+<tr class="even">
+<td><code>$classic()</code></td>
+<td><code>Classic_Fit</code></td>
+<td>Frequentist estimation for flat-prior wrapper models, AIC/BIC,
+ANOVA</td>
+</tr>
+</tbody>
+</table>
+<p><code>sample()</code> is the standard route for Bayesian inference.
+<code>optimize()</code> and <code>variational()</code> are useful for
+quick checks and initial-value search, but MCMC is preferred for
+uncertainty evaluation and Bayes factors.</p>
+</div>
+</div>
+<div id="common-fit-object-methods" class="section level1">
+<h1>3. Common Fit-Object Methods</h1>
+<p><code>MCMC_Fit</code>, <code>MAP_Fit</code>, <code>VB_Fit</code>, and
+<code>Classic_Fit</code> share several methods. The meaning and
+availability of each method still depends on the fit-object type.</p>
+<p>In this section, <code>fit</code> means any fit object. Read it as
+<code>fit_mcmc</code> for MCMC, <code>fit_map</code> for MAP,
+<code>fit_vb</code> for VB, and <code>fit_classic</code> for classic
+estimation. In particular, <code>EAP()</code> and <code>MAP()</code> are
+mainly for MCMC/VB, while classic point estimates are usually obtained
+with <code>estimate()</code>.</p>
+<table>
+<colgroup>
+<col width="21%" />
+<col width="78%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$estimate()</code></td>
+<td>Extract estimates as a list or as a single object</td>
+</tr>
+<tr class="even">
+<td><code>$EAP()</code></td>
+<td>Extract posterior means, mainly for MCMC/VB</td>
+</tr>
+<tr class="odd">
+<td><code>$MAP()</code></td>
+<td>Extract marginal or joint MAP estimates, mainly for MCMC/VB</td>
+</tr>
+<tr class="even">
+<td><code>$summary()</code></td>
+<td>Tabular estimation results</td>
+</tr>
+<tr class="odd">
+<td><code>$print()</code></td>
+<td>Print <code>summary()</code></td>
+</tr>
+<tr class="even">
+<td><code>$diagnose()</code></td>
+<td>Diagnostics appropriate to the fit object</td>
+</tr>
+<tr class="odd">
+<td><code>$rotate()</code></td>
+<td>Procrustes rotation for matrix parameters such as MDU
+coordinates</td>
+</tr>
+<tr class="even">
+<td><code>$fa_rotate()</code></td>
+<td>Factor-analysis rotation for loadings</td>
+</tr>
+</tbody>
+</table>
+<div id="estimate-eap-and-map" class="section level2">
+<h2>3.1 <code>estimate()</code>, <code>EAP()</code>, and
+<code>MAP()</code></h2>
+<p><code>estimate()</code> is the common API for extracting parameters,
+transformed quantities, and generated quantities.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;transform&quot;</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;generate&quot;</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;all&quot;</span>)</span></code></pre></div>
+<p><code>pars = &quot;parameters&quot;</code> returns only the primary parameters
+declared in the <code>parameters</code> block. This is usually what you
+want when reusing estimates as initial values or fixed values.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>est <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<p><code>drop = TRUE</code> is the default. When only one parameter is
+selected, the vector, matrix, or array itself is returned instead of a
+list. Use <code>drop = FALSE</code> if you always want a list.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>b_eap <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">EAP</span>(<span class="st">&quot;b&quot;</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>b_eap_list <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">EAP</span>(<span class="st">&quot;b&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<p><code>EAP()</code> is a shortcut for
+<code>estimate(type = &quot;EAP&quot;)</code>. <code>MAP()</code> returns marginal
+MAP estimates by default.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">EAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">MAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">MAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">type =</span> <span class="st">&quot;joint&quot;</span>)</span></code></pre></div>
+</div>
+<div id="pars-and-component" class="section level2">
+<h2>3.2 <code>pars</code> And <code>component</code></h2>
+<p>Use <code>pars</code> and <code>component</code> to narrow what is
+extracted.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="fu">c</span>(<span class="st">&quot;b&quot;</span>, <span class="st">&quot;sigma&quot;</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">component =</span> <span class="st">&quot;transform&quot;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">component =</span> <span class="st">&quot;generate&quot;</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;-theta&quot;</span>)</span></code></pre></div>
+<p>For MCMC/VB, <code>pars = NULL</code> returns primary parameters by
+default. For classic and MAP fits, results may also include estimated
+fixed effects, transformed quantities, and generated quantities.</p>
+</div>
+</div>
+<div id="mcmc-fit" class="section level1">
+<h1>4. MCMC_Fit</h1>
+<p><code>MCMC_Fit</code> is returned by <code>sample()</code>. It is the
+central object for analyses that use the full posterior distribution,
+including Bayes factors, WAIC, posterior predictive checks, rotations,
+and generated quantities.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">warmup =</span> <span class="dv">1000</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="at">sampling =</span> <span class="dv">1000</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="at">metric =</span> <span class="st">&quot;auto&quot;</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="at">nuts_variant =</span> <span class="st">&quot;multinomial&quot;</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>)</span></code></pre></div>
+<div id="main-methods" class="section level2">
+<h2>4.1 Main Methods</h2>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="66%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$draws()</code></td>
+<td>Extract posterior draws as a 3D array
+<code>[iteration, chain, variable]</code></td>
+</tr>
+<tr class="even">
+<td><code>$summary()</code></td>
+<td>Display mean, sd, MAP, quantiles, ESS, and R-hat</td>
+</tr>
+<tr class="odd">
+<td><code>$rhat_summary()</code></td>
+<td>Summarize R-hat values</td>
+</tr>
+<tr class="even">
+<td><code>$diagnose()</code></td>
+<td>Diagnose acceptance, treedepth, divergence, ESS, R-hat, and metric
+behavior</td>
+</tr>
+<tr class="odd">
+<td><code>$EAP()</code>, <code>$MAP()</code></td>
+<td>Extract posterior mean or MAP estimates</td>
+</tr>
+<tr class="even">
+<td><code>$transformed_draws()</code></td>
+<td>Compute transformed quantities for posterior draws</td>
+</tr>
+<tr class="odd">
+<td><code>$generated_quantities()</code></td>
+<td>Compute generated quantities for posterior draws</td>
+</tr>
+<tr class="even">
+<td><code>$WAIC()</code></td>
+<td>Compute WAIC from pointwise <code>log_lik</code></td>
+</tr>
+<tr class="odd">
+<td><code>$bayes_factor()</code></td>
+<td>Compute Bayes factors by bridge sampling</td>
+</tr>
+<tr class="even">
+<td><code>$rotate()</code></td>
+<td>Rotate matrix-valued parameters</td>
+</tr>
+<tr class="odd">
+<td><code>$fa_rotate()</code></td>
+<td>Rotate factor loadings and related factor-analysis quantities</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="draws" class="section level2">
+<h2>4.2 <code>draws()</code></h2>
+<p><code>draws()</code> extracts posterior draws. By default, it returns
+fixed parameters and available transformed/generated quantities.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">draws</span>()</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">draws</span>(<span class="at">pars =</span> <span class="st">&quot;b&quot;</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">draws</span>(<span class="at">include_random =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">draws</span>(<span class="at">include_transform =</span> <span class="cn">FALSE</span>, <span class="at">include_generate =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<p>For large models, narrow <code>pars</code> before extracting draws to
+avoid unnecessary memory use.</p>
+</div>
+<div id="summary-and-diagnose" class="section level2">
+<h2>4.3 <code>summary()</code> And <code>diagnose()</code></h2>
+<p><code>summary()</code> gives the estimation table.
+<code>diagnose()</code> summarizes sampling quality.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">summary</span>()</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">diagnose</span>()</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">rhat_summary</span>()</span></code></pre></div>
+<p>Pay special attention to:</p>
+<ul>
+<li>R-hat values close to 1.</li>
+<li>Effective sample size.</li>
+<li>Divergences.</li>
+<li>Maximum treedepth hits.</li>
+<li>Metric adaptation and positive-definite fallback messages.</li>
+</ul>
+</div>
+<div id="transformed_draws-and-generated_quantities" class="section level2">
+<h2>4.4 <code>transformed_draws()</code> And
+<code>generated_quantities()</code></h2>
+<p>Use these methods when you want derived quantities for each posterior
+draw.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">transformed_draws</span>()</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">generated_quantities</span>()</span></code></pre></div>
+<p>If a <code>generate</code> block contains <code>log_lik</code>,
+<code>generated_quantities()</code> is the basis for WAIC and related
+pointwise predictive criteria.</p>
+</div>
+<div id="bridge-sampling-and-bayes-factors" class="section level2">
+<h2>4.5 Bridge Sampling And Bayes Factors</h2>
+<p>Bayes factors compare two fitted models. In BayesRTMB, Bayes factors
+are usually computed from MCMC fits.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>fit_full <span class="ot">&lt;-</span> mdl_full<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>fit_null <span class="ot">&lt;-</span> mdl_null<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>fit_full<span class="sc">$</span><span class="fu">bayes_factor</span>(fit_null)</span></code></pre></div>
+<p>When comparing models, use the same data and compatible priors, and
+check MCMC diagnostics for both models. Bayes factors are sensitive to
+the prior on parameters that differ between models.</p>
+</div>
+<div id="waic" class="section level2">
+<h2>4.6 WAIC</h2>
+<p>To compute WAIC, the model must provide pointwise log-likelihood
+values. For wrappers, set <code>WAIC = TRUE</code> when creating the
+model.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">*</span> perf,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">data =</span> debate,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="at">WAIC =</span> <span class="cn">TRUE</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>fit <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">WAIC</span>()</span></code></pre></div>
+<p>For custom models, return or report <code>log_lik</code> in the
+<code>generate</code> block.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>generate <span class="ot">=</span> {</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  log_lik <span class="ot">&lt;-</span> <span class="fu">normal_lpdf</span>(Y, mu, sigma, <span class="at">sum =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="fu">report</span>(log_lik)</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+</div>
+<div id="map-fit" class="section level1">
+<h1>5. MAP_Fit</h1>
+<p><code>MAP_Fit</code> is returned by <code>optimize()</code>. It is
+useful for fast point estimation, initial-value search, profiling, and
+constrained/fixed-parameter workflows.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">num_estimate =</span> <span class="dv">10</span>)</span></code></pre></div>
+<div id="main-methods-1" class="section level2">
+<h2>5.1 Main Methods</h2>
+<table>
+<colgroup>
+<col width="27%" />
+<col width="72%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$estimate()</code></td>
+<td>Extract MAP estimates</td>
+</tr>
+<tr class="even">
+<td><code>$summary()</code></td>
+<td>Display estimates and standard errors when available</td>
+</tr>
+<tr class="odd">
+<td><code>$diagnose()</code></td>
+<td>Summarize optimization results</td>
+</tr>
+<tr class="even">
+<td><code>$profile()</code></td>
+<td>Profile selected parameters</td>
+</tr>
+<tr class="odd">
+<td><code>$WAIC()</code></td>
+<td>Compute WAIC when generated <code>log_lik</code> is available</td>
+</tr>
+<tr class="even">
+<td><code>$rotate()</code></td>
+<td>Rotate matrix-valued parameters</td>
+</tr>
+<tr class="odd">
+<td><code>$fa_rotate()</code></td>
+<td>Rotate factor-analysis results</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="num_estimate-and-the-best-run" class="section level2">
+<h2>5.2 <code>num_estimate</code> And The Best Run</h2>
+<p>Optimization can be sensitive to initial values. Use multiple starts
+with <code>num_estimate</code>.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">num_estimate =</span> <span class="dv">20</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>fit_map<span class="sc">$</span><span class="fu">diagnose</span>()</span></code></pre></div>
+<p>BayesRTMB keeps optimization history and selects the best run
+according to the objective value and convergence status.</p>
+</div>
+<div id="using-optimization-results-as-initial-or-fixed-values" class="section level2">
+<h2>5.3 Using Optimization Results As Initial Or Fixed Values</h2>
+<p>MAP estimates can be reused as initial values for MCMC.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>init <span class="ot">&lt;-</span> fit_map<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>(<span class="at">init =</span> init)</span></code></pre></div>
+<p>They can also be used to construct fixed models.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>est <span class="ot">&lt;-</span> fit_map<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>mdl_fixed <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">fixed_model</span>(<span class="at">fixed =</span> <span class="fu">list</span>(<span class="at">b =</span> est<span class="sc">$</span>b))</span></code></pre></div>
+</div>
+<div id="profile" class="section level2">
+<h2>5.4 <code>profile()</code></h2>
+<p><code>profile()</code> evaluates the objective around selected
+parameters. It is useful for checking local curvature, asymmetric
+uncertainty, and non-quadratic likelihood shape.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>fit_map<span class="sc">$</span><span class="fu">profile</span>(<span class="at">pars =</span> <span class="st">&quot;b&quot;</span>)</span></code></pre></div>
+</div>
+<div id="waic-for-map-fits" class="section level2">
+<h2>5.5 WAIC For MAP Fits</h2>
+<p>WAIC is usually interpreted as a posterior predictive criterion and
+is most natural for MCMC. For MAP fits, WAIC is available when generated
+<code>log_lik</code> values can be computed, but it should be
+interpreted as an approximation.</p>
+</div>
+</div>
+<div id="vb-fit" class="section level1">
+<h1>6. VB_Fit</h1>
+<p><code>VB_Fit</code> is returned by <code>variational()</code>. It
+approximates the posterior distribution and is useful for exploring
+larger models or preparing MCMC.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>fit_vb <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>(<span class="at">iter =</span> <span class="dv">3000</span>)</span></code></pre></div>
+<div id="main-methods-2" class="section level2">
+<h2>6.1 Main Methods</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$EAP()</code></td>
+<td>Extract variational posterior means</td>
+</tr>
+<tr class="even">
+<td><code>$MAP()</code></td>
+<td>Extract approximate MAP-like summaries</td>
+</tr>
+<tr class="odd">
+<td><code>$summary()</code></td>
+<td>Display variational summaries</td>
+</tr>
+<tr class="even">
+<td><code>$plot_elbo()</code></td>
+<td>Plot ELBO trajectory</td>
+</tr>
+<tr class="odd">
+<td><code>$diagnose()</code></td>
+<td>Diagnose convergence and stability</td>
+</tr>
+<tr class="even">
+<td><code>$draws()</code></td>
+<td>Extract approximate posterior draws</td>
+</tr>
+<tr class="odd">
+<td><code>$WAIC()</code></td>
+<td>Compute WAIC when <code>log_lik</code> is available</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="num_estimate-and-best-estimate" class="section level2">
+<h2>6.2 <code>num_estimate</code> And Best Estimate</h2>
+<p>VB can run several independent estimates and select the best
+ELBO.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>fit_vb <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>(<span class="at">num_estimate =</span> <span class="dv">10</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">plot_elbo</span>()</span></code></pre></div>
+<p>By default, <code>EAP()</code> and <code>MAP()</code> use the best
+estimate.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">EAP</span>()</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">EAP</span>(<span class="at">chains =</span> <span class="dv">1</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">EAP</span>(<span class="at">best_chains =</span> <span class="dv">2</span>)</span></code></pre></div>
+</div>
+<div id="checking-convergence-with-plot_elbo" class="section level2">
+<h2>6.3 Checking Convergence With <code>plot_elbo()</code></h2>
+<p>Use <code>plot_elbo()</code> to check whether the ELBO has
+stabilized.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">plot_elbo</span>()</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">diagnose</span>()</span></code></pre></div>
+<p>If the ELBO remains unstable, increase <code>iter</code>, try
+different initial values, or use VB only as an exploratory tool before
+MCMC.</p>
+</div>
+<div id="waic-for-vb-fits" class="section level2">
+<h2>6.4 WAIC For VB Fits</h2>
+<p>WAIC can be computed from VB draws when <code>log_lik</code> is
+available. Interpret it as an approximation, and prefer MCMC-based WAIC
+for final reporting when feasible.</p>
+</div>
+</div>
+<div id="classic-fit" class="section level1">
+<h1>7. Classic_Fit</h1>
+<p><code>Classic_Fit</code> is returned by <code>classic()</code>. It
+provides frequentist-style output for supported wrapper models,
+especially flat-prior models.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(sat <span class="sc">~</span> talk <span class="sc">*</span> perf, <span class="at">data =</span> debate)</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>fit_classic <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>fit_classic<span class="sc">$</span><span class="fu">summary</span>()</span></code></pre></div>
+<div id="main-methods-3" class="section level2">
+<h2>7.1 Main Methods</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>$estimate()</code></td>
+<td>Extract point estimates</td>
+</tr>
+<tr class="even">
+<td><code>$summary()</code></td>
+<td>Display estimates, standard errors, and tests</td>
+</tr>
+<tr class="odd">
+<td><code>$diagnose()</code></td>
+<td>Check fit diagnostics where available</td>
+</tr>
+<tr class="even">
+<td><code>$robust_se()</code></td>
+<td>Compute robust standard errors</td>
+</tr>
+<tr class="odd">
+<td><code>$lsmeans()</code></td>
+<td>Compute least-squares means where supported</td>
+</tr>
+<tr class="even">
+<td><code>AIC()</code>, <code>BIC()</code></td>
+<td>Information criteria</td>
+</tr>
+<tr class="odd">
+<td><code>anova()</code></td>
+<td>Model comparison or analysis-of-variance tables</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="anova" class="section level2">
+<h2>7.2 ANOVA</h2>
+<p>Use <code>anova()</code> for supported classic fits.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a>fit1 <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(sat <span class="sc">~</span> talk, <span class="at">data =</span> debate)<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>fit2 <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(sat <span class="sc">~</span> talk <span class="sc">*</span> perf, <span class="at">data =</span> debate)<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a><span class="fu">anova</span>(fit1, fit2)</span></code></pre></div>
+</div>
+<div id="aic-bic-and-loglik" class="section level2">
+<h2>7.3 AIC, BIC, And <code>logLik</code></h2>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="fu">AIC</span>(fit_classic)</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a><span class="fu">BIC</span>(fit_classic)</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a><span class="fu">logLik</span>(fit_classic)</span></code></pre></div>
+<p>These criteria are most natural for classic/MAP likelihood-based
+fits. For Bayesian predictive comparison, use WAIC or posterior
+predictive checks.</p>
+</div>
+<div id="robust_se" class="section level2">
+<h2>7.4 <code>robust_se()</code></h2>
+<p><code>robust_se()</code> returns a copy of the fit with robust
+standard errors by default.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>fit_robust <span class="ot">&lt;-</span> fit_classic<span class="sc">$</span><span class="fu">robust_se</span>(<span class="at">type =</span> <span class="st">&quot;HC3&quot;</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>fit_cluster <span class="ot">&lt;-</span> fit_classic<span class="sc">$</span><span class="fu">robust_se</span>(<span class="at">cluster =</span> debate<span class="sc">$</span>group)</span></code></pre></div>
+<p>To update the fit object itself, use the update option if
+supported.</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a>fit_classic<span class="sc">$</span><span class="fu">robust_se</span>(<span class="at">type =</span> <span class="st">&quot;HC3&quot;</span>, <span class="at">update =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div id="lsmeans" class="section level2">
+<h2>7.5 <code>lsmeans()</code></h2>
+<p><code>lsmeans()</code> computes adjusted marginal means for supported
+models.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>fit_classic<span class="sc">$</span><span class="fu">lsmeans</span>(<span class="sc">~</span> talk)</span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a>fit_classic<span class="sc">$</span><span class="fu">lsmeans</span>(<span class="sc">~</span> talk <span class="sc">|</span> perf)</span></code></pre></div>
+</div>
+</div>
+<div id="model-comparison" class="section level1">
+<h1>8. Model Comparison And Evaluation Criteria</h1>
+<p>BayesRTMB supports several model comparison tools. Choose the
+criterion according to the estimation method and the question.</p>
+<table>
+<colgroup>
+<col width="19%" />
+<col width="25%" />
+<col width="54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Criterion</th>
+<th>Main fit type</th>
+<th>Main interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bayes factor</td>
+<td>MCMC</td>
+<td>Evidence ratio between Bayesian models</td>
+</tr>
+<tr class="even">
+<td>WAIC</td>
+<td>MCMC/VB/MAP with <code>log_lik</code></td>
+<td>Approximate out-of-sample predictive fit</td>
+</tr>
+<tr class="odd">
+<td>AIC/BIC</td>
+<td>Classic/MAP</td>
+<td>Likelihood-based information criteria</td>
+</tr>
+<tr class="even">
+<td>ELBO</td>
+<td>VB</td>
+<td>Variational objective, useful for VB runs</td>
+</tr>
+</tbody>
+</table>
+<div id="bayes-factor" class="section level2">
+<h2>8.1 Bayes Factor</h2>
+<p>Bayes factors are usually computed by bridge sampling from MCMC
+fits.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a>bf <span class="ot">&lt;-</span> fit_full<span class="sc">$</span><span class="fu">bayes_factor</span>(fit_null)</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>bf</span></code></pre></div>
+<p>Use Bayes factors when the prior is part of the scientific question.
+Do not compare models with incompatible data, likelihoods, or unintended
+prior changes.</p>
+</div>
+<div id="waic-1" class="section level2">
+<h2>8.2 WAIC</h2>
+<p>WAIC requires pointwise log-likelihood values.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a>mdl <span class="ot">&lt;-</span> <span class="fu">rtmb_glm</span>(y <span class="sc">~</span> x, <span class="at">data =</span> dat, <span class="at">family =</span> <span class="st">&quot;bernoulli&quot;</span>, <span class="at">WAIC =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>fit <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">WAIC</span>()</span></code></pre></div>
+<p>For custom models, create <code>log_lik</code> in
+<code>generate</code>.</p>
+</div>
+<div id="aicbic" class="section level2">
+<h2>8.3 AIC/BIC</h2>
+<p>Use AIC/BIC for likelihood-based classic or optimization fits.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="fu">AIC</span>(fit_classic)</span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a><span class="fu">BIC</span>(fit_classic)</span></code></pre></div>
+</div>
+<div id="elbo" class="section level2">
+<h2>8.4 ELBO</h2>
+<p>For VB, the ELBO is mainly a diagnostic and selection criterion among
+VB runs.</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">plot_elbo</span>()</span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">diagnose</span>()</span></code></pre></div>
+</div>
+</div>
+<div id="fixed-parameters" class="section level1">
+<h1>9. Fixing Parameters With <code>fixed</code></h1>
+<p><code>fixed</code> lets you fix one or more parameters to specified
+values. It can be used when creating a model or by calling
+<code>$fixed_model()</code>.</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a>mdl_fixed <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(</span>
+<span id="cb36-2"><a href="#cb36-2" tabindex="-1"></a>  sat <span class="sc">~</span> talk <span class="sc">*</span> perf,</span>
+<span id="cb36-3"><a href="#cb36-3" tabindex="-1"></a>  <span class="at">data =</span> debate,</span>
+<span id="cb36-4"><a href="#cb36-4" tabindex="-1"></a>  <span class="at">fixed =</span> <span class="fu">list</span>(<span class="at">b =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>))</span>
+<span id="cb36-5"><a href="#cb36-5" tabindex="-1"></a>)</span>
+<span id="cb36-6"><a href="#cb36-6" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" tabindex="-1"></a>mdl_fixed2 <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">fixed_model</span>(</span>
+<span id="cb36-8"><a href="#cb36-8" tabindex="-1"></a>  <span class="at">fixed =</span> <span class="fu">list</span>(<span class="at">sigma =</span> <span class="dv">1</span>)</span>
+<span id="cb36-9"><a href="#cb36-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>Fixed values should match the parameter names and dimensions used
+internally by the model.</p>
+<div id="checking-parameter-names" class="section level2">
+<h2>9.1 Checking Parameter Names</h2>
+<p>Use summaries, estimates, draws, and printed model code to check the
+names.</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">summary</span>()</span>
+<span id="cb37-2"><a href="#cb37-2" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">draws</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span>
+<span id="cb37-4"><a href="#cb37-4" tabindex="-1"></a>mdl<span class="sc">$</span><span class="fu">print_code</span>()</span></code></pre></div>
+</div>
+<div id="internal-handling-of-fixed" class="section level2">
+<h2>9.2 Internal Handling Of <code>fixed</code></h2>
+<p>Internally, fixed parameters are removed from the active optimization
+or sampling vector and supplied at fixed values during model evaluation.
+This means the model code can usually be written in the same way
+regardless of whether a parameter is fixed.</p>
+</div>
+<div id="limitations-of-fixed" class="section level2">
+<h2>9.3 Limitations Of <code>fixed</code></h2>
+<p>Use <code>fixed</code> for fixing parameters to numeric values.
+Equality constraints such as “make <code>mean0</code> and
+<code>mean1</code> equal” are usually better expressed by changing the
+model parameterization so that both quantities are built from the same
+underlying parameter.</p>
+<p>For example:</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a>parameters <span class="ot">=</span> {</span>
+<span id="cb38-2"><a href="#cb38-2" tabindex="-1"></a>  mean_common <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb38-3"><a href="#cb38-3" tabindex="-1"></a>}</span>
+<span id="cb38-4"><a href="#cb38-4" tabindex="-1"></a>transform <span class="ot">=</span> {</span>
+<span id="cb38-5"><a href="#cb38-5" tabindex="-1"></a>  mean0 <span class="ot">&lt;-</span> mean_common</span>
+<span id="cb38-6"><a href="#cb38-6" tabindex="-1"></a>  mean1 <span class="ot">&lt;-</span> mean_common</span>
+<span id="cb38-7"><a href="#cb38-7" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="using-optimization-results-as-fixed-values" class="section level2">
+<h2>9.4 Using Optimization Results As Fixed Values</h2>
+<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">num_estimate =</span> <span class="dv">10</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" tabindex="-1"></a>est <span class="ot">&lt;-</span> fit_map<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb39-3"><a href="#cb39-3" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" tabindex="-1"></a>mdl_fixed <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">fixed_model</span>(</span>
+<span id="cb39-5"><a href="#cb39-5" tabindex="-1"></a>  <span class="at">fixed =</span> <span class="fu">list</span>(<span class="at">b =</span> est<span class="sc">$</span>b)</span>
+<span id="cb39-6"><a href="#cb39-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="using-mcmc-results-as-fixed-values" class="section level2">
+<h2>9.5 Using MCMC Results As Fixed Values</h2>
+<p>Use posterior summaries, not raw draws, as fixed values.</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a>eap <span class="ot">&lt;-</span> fit_mcmc<span class="sc">$</span><span class="fu">EAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb40-2"><a href="#cb40-2" tabindex="-1"></a>mdl_fixed <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">fixed_model</span>(<span class="at">fixed =</span> <span class="fu">list</span>(<span class="at">b =</span> eap<span class="sc">$</span>b))</span></code></pre></div>
+</div>
+<div id="fixed-and-bayes-factors" class="section level2">
+<h2>9.6 <code>fixed</code> And Bayes Factors</h2>
+<p>Bayes factors compare models with different parameter spaces. A
+fixed-parameter model can be useful as a null model, but priors and
+constraints must be chosen deliberately.</p>
+</div>
+</div>
+<div id="rtmb-code-blocks" class="section level1">
+<h1>10. <code>rtmb_code()</code> Blocks</h1>
+<p><code>rtmb_code()</code> separates model code into blocks.</p>
+<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" tabindex="-1"></a>code <span class="ot">&lt;-</span> <span class="fu">rtmb_code</span>(</span>
+<span id="cb41-2"><a href="#cb41-2" tabindex="-1"></a>  <span class="at">setup =</span> {</span>
+<span id="cb41-3"><a href="#cb41-3" tabindex="-1"></a>    N <span class="ot">&lt;-</span> <span class="fu">length</span>(Y)</span>
+<span id="cb41-4"><a href="#cb41-4" tabindex="-1"></a>  },</span>
+<span id="cb41-5"><a href="#cb41-5" tabindex="-1"></a>  <span class="at">parameters =</span> {</span>
+<span id="cb41-6"><a href="#cb41-6" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb41-7"><a href="#cb41-7" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb41-8"><a href="#cb41-8" tabindex="-1"></a>  },</span>
+<span id="cb41-9"><a href="#cb41-9" tabindex="-1"></a>  <span class="at">transform =</span> {</span>
+<span id="cb41-10"><a href="#cb41-10" tabindex="-1"></a>    z <span class="ot">&lt;-</span> (Y <span class="sc">-</span> mu) <span class="sc">/</span> sigma</span>
+<span id="cb41-11"><a href="#cb41-11" tabindex="-1"></a>  },</span>
+<span id="cb41-12"><a href="#cb41-12" tabindex="-1"></a>  <span class="at">model =</span> {</span>
+<span id="cb41-13"><a href="#cb41-13" tabindex="-1"></a>    Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb41-14"><a href="#cb41-14" tabindex="-1"></a>  },</span>
+<span id="cb41-15"><a href="#cb41-15" tabindex="-1"></a>  <span class="at">generate =</span> {</span>
+<span id="cb41-16"><a href="#cb41-16" tabindex="-1"></a>    log_lik <span class="ot">&lt;-</span> <span class="fu">normal_lpdf</span>(Y, mu, sigma, <span class="at">sum =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb41-17"><a href="#cb41-17" tabindex="-1"></a>    <span class="fu">report</span>(log_lik)</span>
+<span id="cb41-18"><a href="#cb41-18" tabindex="-1"></a>  }</span>
+<span id="cb41-19"><a href="#cb41-19" tabindex="-1"></a>)</span></code></pre></div>
+<table>
+<colgroup>
+<col width="18%" />
+<col width="81%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Block</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>setup</code></td>
+<td>Data preprocessing and helper definitions outside AD</td>
+</tr>
+<tr class="even">
+<td><code>parameters</code></td>
+<td>Estimated parameter declarations</td>
+</tr>
+<tr class="odd">
+<td><code>transform</code></td>
+<td>Deterministic quantities used by the model and ADREPORT/SE</td>
+</tr>
+<tr class="even">
+<td><code>model</code></td>
+<td>Likelihood and priors</td>
+</tr>
+<tr class="odd">
+<td><code>generate</code></td>
+<td>Post-estimation quantities such as predictions and
+<code>log_lik</code></td>
+</tr>
+</tbody>
+</table>
+<div id="what-belongs-in-setup" class="section level2">
+<h2>10.1 What Belongs In <code>setup</code></h2>
+<p>Use <code>setup</code> for calculations that do not need AD:</p>
+<ul>
+<li>Dimensions and indexes.</li>
+<li>Missing-data preprocessing.</li>
+<li>Design matrices.</li>
+<li>Group indexes.</li>
+<li>Helper functions that operate on data only.</li>
+</ul>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" tabindex="-1"></a>setup <span class="ot">=</span> {</span>
+<span id="cb42-2"><a href="#cb42-2" tabindex="-1"></a>  N <span class="ot">&lt;-</span> <span class="fu">nrow</span>(df)</span>
+<span id="cb42-3"><a href="#cb42-3" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span> x1 <span class="sc">+</span> x2, df)</span>
+<span id="cb42-4"><a href="#cb42-4" tabindex="-1"></a>  K <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb42-5"><a href="#cb42-5" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="what-belongs-in-transform" class="section level2">
+<h2>10.2 What Belongs In <code>transform</code></h2>
+<p>Use <code>transform</code> for derived quantities that depend on
+parameters and may need standard errors or ADREPORT-style treatment.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" tabindex="-1"></a>transform <span class="ot">=</span> {</span>
+<span id="cb43-2"><a href="#cb43-2" tabindex="-1"></a>  eta <span class="ot">&lt;-</span> Intercept <span class="sc">+</span> X <span class="sc">%*%</span> b</span>
+<span id="cb43-3"><a href="#cb43-3" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">inv_logit</span>(eta)</span>
+<span id="cb43-4"><a href="#cb43-4" tabindex="-1"></a>  <span class="fu">report</span>(p)</span>
+<span id="cb43-5"><a href="#cb43-5" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="what-belongs-in-generate" class="section level2">
+<h2>10.3 What Belongs In <code>generate</code></h2>
+<p>Use <code>generate</code> for quantities computed after estimation,
+such as predictions, correlations, posterior predictive summaries, and
+pointwise log-likelihoods.</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" tabindex="-1"></a>generate <span class="ot">=</span> {</span>
+<span id="cb44-2"><a href="#cb44-2" tabindex="-1"></a>  y_rep_mean <span class="ot">&lt;-</span> mu</span>
+<span id="cb44-3"><a href="#cb44-3" tabindex="-1"></a>  log_lik <span class="ot">&lt;-</span> <span class="fu">normal_lpdf</span>(Y, mu, sigma, <span class="at">sum =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb44-4"><a href="#cb44-4" tabindex="-1"></a>  <span class="fu">report</span>(y_rep_mean, log_lik)</span>
+<span id="cb44-5"><a href="#cb44-5" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="choosing-between-transform-and-generate" class="section level2">
+<h2>10.4 Choosing Between <code>transform</code> And
+<code>generate</code></h2>
+<p>Use <code>transform</code> when the quantity should participate in
+AD-based reporting, standard errors, or model evaluation. Use
+<code>generate</code> when the quantity is a post-estimation output. The
+printed code may look similar, but internally the two blocks serve
+different purposes.</p>
+</div>
+</div>
+<div id="parameter-declarations-and-types" class="section level1">
+<h1>11. Parameter Declarations And Types</h1>
+<p>Parameters are declared with <code>Dim()</code>.</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a>parameters <span class="ot">=</span> {</span>
+<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a>  alpha <span class="ot">&lt;-</span> <span class="fu">Dim</span>()</span>
+<span id="cb45-3"><a href="#cb45-3" tabindex="-1"></a>  b <span class="ot">&lt;-</span> <span class="fu">Dim</span>(K)</span>
+<span id="cb45-4"><a href="#cb45-4" tabindex="-1"></a>  L <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="fu">c</span>(P, P), <span class="at">type =</span> <span class="st">&quot;CF_corr&quot;</span>)</span>
+<span id="cb45-5"><a href="#cb45-5" tabindex="-1"></a>  sigma <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb45-6"><a href="#cb45-6" tabindex="-1"></a>}</span></code></pre></div>
+<div id="dimensions" class="section level2">
+<h2>11.1 Dimensions</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Declaration</th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Dim()</code></td>
+<td>Scalar</td>
+</tr>
+<tr class="even">
+<td><code>Dim(K)</code></td>
+<td>Vector of length <code>K</code></td>
+</tr>
+<tr class="odd">
+<td><code>Dim(c(R, C))</code></td>
+<td>Matrix-like object <code>R x C</code></td>
+</tr>
+<tr class="even">
+<td><code>Dim(c(A, B, C))</code></td>
+<td>Array-like object</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="constraints" class="section level2">
+<h2>11.2 Constraints</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Argument</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>lower = 0</code></td>
+<td>Positive parameter</td>
+</tr>
+<tr class="even">
+<td><code>upper = 1</code></td>
+<td>Upper-bounded parameter</td>
+</tr>
+<tr class="odd">
+<td><code>lower = 0, upper = 1</code></td>
+<td>Unit-interval parameter</td>
+</tr>
+<tr class="even">
+<td><code>type = &quot;simplex&quot;</code></td>
+<td>Simplex parameter</td>
+</tr>
+<tr class="odd">
+<td><code>type = &quot;ordered&quot;</code></td>
+<td>Ordered vector</td>
+</tr>
+<tr class="even">
+<td><code>type = &quot;CF_corr&quot;</code></td>
+<td>Cholesky factor for correlation matrices</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="random-true" class="section level2">
+<h2>11.3 <code>random = TRUE</code></h2>
+<p>Use <code>random = TRUE</code> for latent variables or random effects
+to be marginalized by Laplace approximation in optimization.</p>
+<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" tabindex="-1"></a>parameters <span class="ot">=</span> {</span>
+<span id="cb46-2"><a href="#cb46-2" tabindex="-1"></a>  u <span class="ot">&lt;-</span> <span class="fu">Dim</span>(J, <span class="at">random =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb46-3"><a href="#cb46-3" tabindex="-1"></a>  tau <span class="ot">&lt;-</span> <span class="fu">Dim</span>(<span class="at">lower =</span> <span class="dv">0</span>)</span>
+<span id="cb46-4"><a href="#cb46-4" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+</div>
+<div id="distribution-overview" class="section level1">
+<h1>12. Distribution Overview</h1>
+<p>Distributions can be used with Stan-like sampling statements or with
+explicit log-density functions.</p>
+<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb47-2"><a href="#cb47-2" tabindex="-1"></a>lp <span class="ot">&lt;-</span> lp <span class="sc">+</span> <span class="fu">normal_lpdf</span>(Y, mu, sigma)</span></code></pre></div>
+<div id="continuous-distributions" class="section level2">
+<h2>12.1 Continuous Distributions</h2>
+<p>Common continuous distributions include:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function family</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Normal</td>
+<td><code>normal_lpdf(y, mu, sigma)</code></td>
+</tr>
+<tr class="even">
+<td>Student t</td>
+<td><code>student_t_lpdf(y, df, mu, sigma)</code></td>
+</tr>
+<tr class="odd">
+<td>Exponential</td>
+<td><code>exponential_lpdf(x, rate)</code></td>
+</tr>
+<tr class="even">
+<td>Gamma</td>
+<td><code>gamma_lpdf(x, shape, rate)</code></td>
+</tr>
+<tr class="odd">
+<td>Beta</td>
+<td><code>beta_lpdf(x, a, b)</code></td>
+</tr>
+<tr class="even">
+<td>Laplace</td>
+<td><code>laplace_lpdf(x, mu, sigma)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="discrete-distributions" class="section level2">
+<h2>12.2 Discrete Distributions</h2>
+<p>Common discrete distributions include Bernoulli, binomial, Poisson,
+categorical, ordered-logistic, and negative-binomial families.</p>
+<div class="sourceCode" id="cb48"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" tabindex="-1"></a>y <span class="sc">~</span> <span class="fu">bernoulli_logit</span>(eta)</span>
+<span id="cb48-2"><a href="#cb48-2" tabindex="-1"></a>y <span class="sc">~</span> <span class="fu">poisson</span>(lambda)</span>
+<span id="cb48-3"><a href="#cb48-3" tabindex="-1"></a>y <span class="sc">~</span> <span class="fu">ordered_logistic</span>(eta, cutpoints)</span></code></pre></div>
+</div>
+<div id="multivariate-and-matrix-distributions" class="section level2">
+<h2>12.3 Multivariate And Matrix Distributions</h2>
+<p>Use multivariate distributions for correlated outcomes and random
+effects.</p>
+<div class="sourceCode" id="cb49"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">multi_normal_CF</span>(<span class="at">mean =</span> mu, <span class="at">sd =</span> sigma, <span class="at">CF_Omega =</span> L_corr)</span>
+<span id="cb49-2"><a href="#cb49-2" tabindex="-1"></a>L_corr <span class="sc">~</span> <span class="fu">lkj_CF_corr</span>(<span class="dv">1</span>)</span></code></pre></div>
+</div>
+<div id="mixtures-and-special-distributions" class="section level2">
+<h2>12.4 Mixtures And Special Distributions</h2>
+<p>Mixture models usually build a matrix of component log densities and
+combine them with <code>log_sum_exp()</code>.</p>
+<div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" tabindex="-1"></a>log_dens_mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(mu[<span class="dv">1</span>] <span class="sc">*</span> <span class="dv">0</span>, N, K)</span>
+<span id="cb50-2"><a href="#cb50-2" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>K) {</span>
+<span id="cb50-3"><a href="#cb50-3" tabindex="-1"></a>  log_dens_mat[, k] <span class="ot">&lt;-</span> <span class="fu">normal_lpdf</span>(Y, mu[k], sigma[k], <span class="at">sum =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb50-4"><a href="#cb50-4" tabindex="-1"></a>}</span>
+<span id="cb50-5"><a href="#cb50-5" tabindex="-1"></a>lp <span class="ot">&lt;-</span> lp <span class="sc">+</span> <span class="fu">sum</span>(<span class="fu">log_sum_exp</span>(<span class="fu">t</span>(<span class="fu">t</span>(log_dens_mat) <span class="sc">+</span> <span class="fu">log</span>(theta))))</span></code></pre></div>
+</div>
+</div>
+<div id="math-and-stabilization-functions" class="section level1">
+<h1>13. Math And Stabilization Functions</h1>
+<p>BayesRTMB provides helper functions for stable model code.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>log_sum_exp()</code></td>
+<td>Stable log-sum-exp, including AD values</td>
+</tr>
+<tr class="even">
+<td><code>softmax()</code></td>
+<td>Softmax probabilities</td>
+</tr>
+<tr class="odd">
+<td><code>log_softmax()</code></td>
+<td>Log-softmax</td>
+</tr>
+<tr class="even">
+<td><code>inv_logit()</code></td>
+<td>Logistic inverse</td>
+</tr>
+<tr class="odd">
+<td><code>logit()</code></td>
+<td>Logit transform</td>
+</tr>
+<tr class="even">
+<td><code>log1p_exp()</code></td>
+<td>Stable <code>log(1 + exp(x))</code></td>
+</tr>
+<tr class="odd">
+<td><code>rtmb_vector()</code></td>
+<td>Mutable AD-compatible vector</td>
+</tr>
+<tr class="even">
+<td><code>rtmb_array()</code></td>
+<td>Mutable AD-compatible array</td>
+</tr>
+<tr class="odd">
+<td><code>distance()</code></td>
+<td>Euclidean distance</td>
+</tr>
+<tr class="even">
+<td><code>squared_distance()</code></td>
+<td>Squared Euclidean distance</td>
+</tr>
+</tbody>
+</table>
+<p>When writing categorical models with a baseline category, the natural
+pattern can be used inside <code>rtmb_code()</code>.</p>
+<div class="sourceCode" id="cb51"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" tabindex="-1"></a>log_pi <span class="ot">&lt;-</span> <span class="fu">log_softmax</span>(<span class="fu">c</span>(<span class="dv">0</span>, eta))</span>
+<span id="cb51-2"><a href="#cb51-2" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">softmax</span>(<span class="fu">c</span>(<span class="dv">0</span>, eta))</span></code></pre></div>
+</div>
+<div id="ad-taping-and-performance" class="section level1">
+<h1>14. AD Taping And Performance</h1>
+<p>RTMB records model evaluation on an automatic-differentiation tape.
+Code that is simple, vectorized, and AD-compatible tapes faster and
+evaluates more reliably.</p>
+<div id="use-setup" class="section level2">
+<h2>14.1 Use <code>setup</code></h2>
+<p>Move data-only calculations to <code>setup</code>.</p>
+<div class="sourceCode" id="cb52"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" tabindex="-1"></a>setup <span class="ot">=</span> {</span>
+<span id="cb52-2"><a href="#cb52-2" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span> x1 <span class="sc">+</span> x2, df)</span>
+<span id="cb52-3"><a href="#cb52-3" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="prefer-vectorization" class="section level2">
+<h2>14.2 Prefer Vectorization</h2>
+<p>Prefer vectorized operations when they are clear and
+AD-compatible.</p>
+<div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" tabindex="-1"></a>mu <span class="ot">&lt;-</span> Intercept <span class="sc">+</span> X <span class="sc">%*%</span> b</span>
+<span id="cb53-2"><a href="#cb53-2" tabindex="-1"></a>Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span></code></pre></div>
+</div>
+<div id="avoid-apply-style-functions-in-ad-code" class="section level2">
+<h2>14.3 Avoid <code>apply</code>-Style Functions In AD Code</h2>
+<p>Many <code>apply</code>-style functions are convenient but can be
+difficult to tape inside AD code. Use explicit loops when necessary,
+especially for AD values.</p>
+</div>
+<div id="notes-on-if-and-ifelse" class="section level2">
+<h2>14.4 Notes On <code>if</code> And <code>ifelse</code></h2>
+<p>Avoid branching on parameter-dependent quantities. Branching on data
+or setup values is usually fine.</p>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" tabindex="-1"></a><span class="co"># Good: branch decided by data/setup</span></span>
+<span id="cb54-2"><a href="#cb54-2" tabindex="-1"></a><span class="cf">if</span> (family <span class="sc">==</span> <span class="st">&quot;gaussian&quot;</span>) {</span>
+<span id="cb54-3"><a href="#cb54-3" tabindex="-1"></a>  Y <span class="sc">~</span> <span class="fu">normal</span>(mu, sigma)</span>
+<span id="cb54-4"><a href="#cb54-4" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="rtmb_vector-and-rtmb_array" class="section level2">
+<h2>14.5 <code>rtmb_vector()</code> And <code>rtmb_array()</code></h2>
+<p>Use <code>rtmb_vector()</code> and <code>rtmb_array()</code> when you
+need a mutable container that will receive AD values inside a loop.</p>
+<div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" tabindex="-1"></a>log_lik <span class="ot">&lt;-</span> <span class="fu">rtmb_vector</span>(<span class="dv">0</span>, N)</span>
+<span id="cb55-2"><a href="#cb55-2" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>N) {</span>
+<span id="cb55-3"><a href="#cb55-3" tabindex="-1"></a>  log_lik[i] <span class="ot">&lt;-</span> <span class="fu">normal_lpdf</span>(Y[i], mu[i], sigma)</span>
+<span id="cb55-4"><a href="#cb55-4" tabindex="-1"></a>}</span></code></pre></div>
+<p>For matrices or arrays:</p>
+<div class="sourceCode" id="cb56"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">rtmb_array</span>(<span class="dv">0</span>, <span class="at">dim =</span> <span class="fu">c</span>(N, K))</span>
+<span id="cb56-2"><a href="#cb56-2" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>K) {</span>
+<span id="cb56-3"><a href="#cb56-3" tabindex="-1"></a>  A[, k] <span class="ot">&lt;-</span> <span class="fu">normal_lpdf</span>(Y, mu[k], sigma[k], <span class="at">sum =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb56-4"><a href="#cb56-4" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="taping-time-and-ad-evaluation-speed" class="section level2">
+<h2>14.6 Taping Time And AD Evaluation Speed</h2>
+<p>Long loops, large generated quantities, and repeated matrix
+decompositions can increase taping time. Keep generated quantities
+focused on values that you will use.</p>
+</div>
+<div id="patterns-to-avoid-inside-ad-tapes" class="section level2">
+<h2>14.7 Patterns To Avoid Inside AD Tapes</h2>
+<p>Avoid these patterns inside parameter-dependent code when
+possible:</p>
+<ul>
+<li><code>numeric(N)</code> followed by assignment of AD values.</li>
+<li><code>matrix(0, ...)</code> followed by elementwise AD
+assignment.</li>
+<li><code>apply()</code> over AD arrays.</li>
+<li>Branching on parameter-dependent conditions.</li>
+<li>Recomputing data-only indexes in the <code>model</code> block.</li>
+</ul>
+</div>
+</div>
+<div id="common-recipes" class="section level1">
+<h1>15. Common Recipes</h1>
+<div id="get-only-estimates-from-mcmc" class="section level2">
+<h2>15.1 Get Only Estimates From MCMC</h2>
+<div class="sourceCode" id="cb57"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb57-2"><a href="#cb57-2" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">EAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span>
+<span id="cb57-3"><a href="#cb57-3" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">MAP</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>)</span></code></pre></div>
+</div>
+<div id="use-map-initial-values-for-mcmc" class="section level2">
+<h2>15.2 Use MAP Initial Values For MCMC</h2>
+<div class="sourceCode" id="cb58"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" tabindex="-1"></a>fit_map <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">optimize</span>(<span class="at">num_estimate =</span> <span class="dv">20</span>)</span>
+<span id="cb58-2"><a href="#cb58-2" tabindex="-1"></a>init <span class="ot">&lt;-</span> fit_map<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;parameters&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb58-3"><a href="#cb58-3" tabindex="-1"></a>fit_mcmc <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>(<span class="at">init =</span> init)</span></code></pre></div>
+</div>
+<div id="extract-only-generated-quantities" class="section level2">
+<h2>15.3 Extract Only Generated Quantities</h2>
+<div class="sourceCode" id="cb59"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" tabindex="-1"></a>fit<span class="sc">$</span><span class="fu">estimate</span>(<span class="at">pars =</span> <span class="st">&quot;generate&quot;</span>)</span>
+<span id="cb59-2"><a href="#cb59-2" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">generated_quantities</span>()</span></code></pre></div>
+</div>
+<div id="extract-draws-including-random-effects" class="section level2">
+<h2>15.4 Extract Draws Including Random Effects</h2>
+<div class="sourceCode" id="cb60"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" tabindex="-1"></a>fit_mcmc<span class="sc">$</span><span class="fu">draws</span>(<span class="at">include_random =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div id="check-vb-convergence" class="section level2">
+<h2>15.5 Check VB Convergence</h2>
+<div class="sourceCode" id="cb61"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" tabindex="-1"></a>fit_vb <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">variational</span>(<span class="at">num_estimate =</span> <span class="dv">5</span>)</span>
+<span id="cb61-2"><a href="#cb61-2" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">plot_elbo</span>()</span>
+<span id="cb61-3"><a href="#cb61-3" tabindex="-1"></a>fit_vb<span class="sc">$</span><span class="fu">diagnose</span>()</span></code></pre></div>
+</div>
+<div id="compare-models-with-classic-estimation" class="section level2">
+<h2>15.6 Compare Models With Classic Estimation</h2>
+<div class="sourceCode" id="cb62"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" tabindex="-1"></a>fit1 <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(y <span class="sc">~</span> x1, <span class="at">data =</span> dat)<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb62-2"><a href="#cb62-2" tabindex="-1"></a>fit2 <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(y <span class="sc">~</span> x1 <span class="sc">+</span> x2, <span class="at">data =</span> dat)<span class="sc">$</span><span class="fu">classic</span>()</span>
+<span id="cb62-3"><a href="#cb62-3" tabindex="-1"></a></span>
+<span id="cb62-4"><a href="#cb62-4" tabindex="-1"></a><span class="fu">anova</span>(fit1, fit2)</span>
+<span id="cb62-5"><a href="#cb62-5" tabindex="-1"></a><span class="fu">AIC</span>(fit1, fit2)</span>
+<span id="cb62-6"><a href="#cb62-6" tabindex="-1"></a><span class="fu">BIC</span>(fit1, fit2)</span></code></pre></div>
+</div>
+<div id="compare-coefficient-inclusion-with-a-bayes-factor" class="section level2">
+<h2>15.7 Compare Coefficient Inclusion With A Bayes Factor</h2>
+<div class="sourceCode" id="cb63"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" tabindex="-1"></a>mdl_full <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(y <span class="sc">~</span> x1 <span class="sc">+</span> x2, <span class="at">data =</span> dat, <span class="at">prior =</span> <span class="fu">prior_normal</span>())</span>
+<span id="cb63-2"><a href="#cb63-2" tabindex="-1"></a>mdl_null <span class="ot">&lt;-</span> <span class="fu">rtmb_lm</span>(y <span class="sc">~</span> x1, <span class="at">data =</span> dat, <span class="at">prior =</span> <span class="fu">prior_normal</span>())</span>
+<span id="cb63-3"><a href="#cb63-3" tabindex="-1"></a></span>
+<span id="cb63-4"><a href="#cb63-4" tabindex="-1"></a>fit_full <span class="ot">&lt;-</span> mdl_full<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb63-5"><a href="#cb63-5" tabindex="-1"></a>fit_null <span class="ot">&lt;-</span> mdl_null<span class="sc">$</span><span class="fu">sample</span>()</span>
+<span id="cb63-6"><a href="#cb63-6" tabindex="-1"></a></span>
+<span id="cb63-7"><a href="#cb63-7" tabindex="-1"></a>fit_full<span class="sc">$</span><span class="fu">bayes_factor</span>(fit_null)</span></code></pre></div>
+</div>
+<div id="build-a-fixed-model-explicitly" class="section level2">
+<h2>15.8 Build A Fixed Model Explicitly</h2>
+<div class="sourceCode" id="cb64"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" tabindex="-1"></a>mdl_fixed <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">fixed_model</span>(</span>
+<span id="cb64-2"><a href="#cb64-2" tabindex="-1"></a>  <span class="at">fixed =</span> <span class="fu">list</span>(<span class="at">b =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>))</span>
+<span id="cb64-3"><a href="#cb64-3" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="upgrade-fit" class="section level2">
+<h2>15.9 Upgrade An Old Fit Object</h2>
+<p>Use <code>upgrade_fit()</code> when you want to reuse a saved fit
+object with the current class definitions after updating the
+package.</p>
+<div class="sourceCode" id="cb65"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">&quot;old-fit.rds&quot;</span>)</span>
+<span id="cb65-2"><a href="#cb65-2" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">upgrade_fit</span>(fit)</span></code></pre></div>
+<p>If the embedded model object also needs current methods, upgrade it
+as well.</p>
+<div class="sourceCode" id="cb66"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">upgrade_fit</span>(fit, <span class="at">model =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div id="run-mcmc-in-parallel" class="section level2">
+<h2>15.10 Run MCMC In Parallel</h2>
+<div class="sourceCode" id="cb67"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> mdl<span class="sc">$</span><span class="fu">sample</span>(</span>
+<span id="cb67-2"><a href="#cb67-2" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>,</span>
+<span id="cb67-3"><a href="#cb67-3" tabindex="-1"></a>  <span class="at">parallel =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb67-4"><a href="#cb67-4" tabindex="-1"></a>  <span class="at">sampling =</span> <span class="dv">1000</span>,</span>
+<span id="cb67-5"><a href="#cb67-5" tabindex="-1"></a>  <span class="at">warmup =</span> <span class="dv">1000</span></span>
+<span id="cb67-6"><a href="#cb67-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>Parallel workers need access to the functions and data used by the
+model. Wrapper models preserve the setup environment needed by generated
+code.</p>
+</div>
+</div>
+<div id="caveats" class="section level1">
+<h1>16. Caveats</h1>
+<ul>
+<li>Check MCMC diagnostics before interpreting posterior summaries.</li>
+<li>Use MCMC rather than VB for final uncertainty summaries when the
+model is difficult or highly nonlinear.</li>
+<li>Use <code>WAIC = TRUE</code> before fitting if you plan to call
+<code>WAIC()</code>.</li>
+<li>Ensure fixed values match the internal parameter names and
+dimensions.</li>
+<li>For equality constraints, prefer reparameterizing the model instead
+of trying to express the constraint through <code>fixed</code>.</li>
+<li>Keep data-only calculations in <code>setup</code> and
+parameter-dependent calculations in <code>transform</code>,
+<code>model</code>, or <code>generate</code> as appropriate.</li>
+<li>Use <code>rtmb_vector()</code> and <code>rtmb_array()</code> for
+mutable AD containers.</li>
+<li>When a wrapper is unclear, inspect the generated code with
+<code>mdl$print_code()</code>.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

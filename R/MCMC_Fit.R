@@ -30,6 +30,18 @@ dmvnorm_log <- function(x, mean, sigma) {
 #' @param eps Step size used by the sampler.
 #' @param accept Acceptance statistics from sampling.
 #' @param treedepth Tree depth used in HMC/NUTS sampling.
+#' @param n_leapfrog Number of leapfrog steps for retained draws.
+#' @param divergent Logical matrix indicating divergent transitions.
+#' @param energy Hamiltonian energy for retained draws.
+#' @param metric Per-chain inverse mass matrix used by NUTS.
+#' @param metric_type Effective mass matrix adaptation type used by NUTS.
+#' @param metric_requested Mass matrix adaptation type requested by the user.
+#' @param metric_effective Effective mass matrix adaptation type by chain.
+#' @param metric_auto Automatic metric selection details by chain, if used.
+#' @param metric_init Initial metric source used by NUTS.
+#' @param metric_adaptation Metric learning mode used during warmup.
+#' @param nuts_variant NUTS proposal selection variant used for sampling.
+#' @param warmup_diagnostics Per-chain warmup diagnostics.
 #' @param laplace Logical; whether Laplace approximation was used.
 #' @param posterior_mean Posterior mean estimates.
 #' @param pars Names of parameters to extract or summarize.
@@ -64,6 +76,18 @@ dmvnorm_log <- function(x, mean, sigma) {
 #' @field eps Step size used by the sampler.
 #' @field accept Acceptance statistics from sampling.
 #' @field treedepth Tree depth used in HMC/NUTS sampling.
+#' @field n_leapfrog Number of leapfrog steps for retained draws.
+#' @field divergent Logical matrix indicating divergent transitions.
+#' @field energy Hamiltonian energy for retained draws.
+#' @field metric Per-chain inverse mass matrix used by NUTS.
+#' @field metric_type Effective mass matrix adaptation type used by NUTS.
+#' @field metric_requested Mass matrix adaptation type requested by the user.
+#' @field metric_effective Effective mass matrix adaptation type by chain.
+#' @field metric_auto Automatic metric selection details by chain, if used.
+#' @field metric_init Initial metric source used by NUTS.
+#' @field metric_adaptation Metric learning mode used during warmup.
+#' @field nuts_variant NUTS proposal selection variant used for sampling.
+#' @field warmup_diagnostics Per-chain warmup diagnostics.
 #' @field laplace Logical; whether Laplace approximation was used.
 #' @field posterior_mean Posterior mean estimates.
 #' @field log_ml Numeric value storing the calculated log marginal likelihood from bridge sampling.
@@ -90,6 +114,18 @@ MCMC_Fit <- R6::R6Class(
     eps            = NULL,
     accept         = NULL,
     treedepth      = NULL,
+    n_leapfrog     = NULL,
+    divergent      = NULL,
+    energy         = NULL,
+    metric         = NULL,
+    metric_type    = NULL,
+    metric_requested = NULL,
+    metric_effective = NULL,
+    metric_auto    = NULL,
+    metric_init    = NULL,
+    metric_adaptation = NULL,
+    nuts_variant   = NULL,
+    warmup_diagnostics = NULL,
     laplace        = NULL,
     posterior_mean = NULL,
     log_ml          = NULL,
@@ -144,14 +180,44 @@ MCMC_Fit <- R6::R6Class(
     #' @param posterior_mean Posterior mean estimates.
     #' @param max_treedepth Maximum tree depth requested for NUTS/HMC.
     #' @param pd_error_count Positive-definite/singularity errors treated as `lp = -Inf` by chain.
+    #' @param n_leapfrog Number of leapfrog steps for retained draws.
+    #' @param divergent Logical matrix indicating divergent transitions.
+    #' @param energy Hamiltonian energy for retained draws.
+    #' @param metric Per-chain inverse mass matrix used by NUTS.
+    #' @param metric_type Effective mass matrix adaptation type used by NUTS.
+    #' @param metric_requested Mass matrix adaptation type requested by the user.
+    #' @param metric_effective Effective mass matrix adaptation type by chain.
+    #' @param metric_auto Automatic metric selection details by chain, if used.
+    #' @param metric_init Initial metric source used by NUTS.
+    #' @param metric_adaptation Metric learning mode used during warmup.
+    #' @param nuts_variant NUTS proposal selection variant used for sampling.
+    #' @param warmup_diagnostics Per-chain warmup diagnostics.
     initialize = function(model, fit, random_fit, eps, accept, treedepth, laplace,
-                          posterior_mean, max_treedepth = NULL, pd_error_count = NULL) {
+                          posterior_mean, max_treedepth = NULL, pd_error_count = NULL,
+                          n_leapfrog = NULL, divergent = NULL, energy = NULL,
+                          metric = NULL, metric_type = NULL, metric_init = NULL,
+                          metric_requested = NULL, metric_effective = NULL,
+                          metric_auto = NULL, metric_adaptation = NULL,
+                          nuts_variant = NULL,
+                          warmup_diagnostics = NULL) {
       self$model <- model
       self$fit <- fit
       self$random_fit <- random_fit
       self$eps <- eps
       self$accept <- accept
       self$treedepth <- treedepth
+      self$n_leapfrog <- n_leapfrog
+      self$divergent <- divergent
+      self$energy <- energy
+      self$metric <- metric
+      self$metric_type <- metric_type
+      self$metric_requested <- metric_requested %||% metric_type
+      self$metric_effective <- metric_effective
+      self$metric_auto <- metric_auto
+      self$metric_init <- metric_init
+      self$metric_adaptation <- metric_adaptation
+      self$nuts_variant <- nuts_variant
+      self$warmup_diagnostics <- warmup_diagnostics
       self$laplace <- laplace
       self$posterior_mean <- posterior_mean
       self$max_treedepth <- max_treedepth
@@ -405,6 +471,36 @@ MCMC_Fit <- R6::R6Class(
       class(res_df) <- c("summary_BayesRTMB", "data.frame")
       attr(res_df, "digits") <- digits
       return(res_df)
+    },
+
+    #' @description Summarize R-hat values.
+    #' @param pars Character or numeric vector specifying parameters to include.
+    #' @param chains Numeric vector specifying chains to include.
+    #' @param best_chains Integer; number of best chains to retain based on mean log-posterior.
+    #' @param inc_random Logical; whether to include random effects. Default is FALSE.
+    #' @param inc_transform Logical; whether to include transformed parameters. Default is TRUE.
+    #' @param inc_generate Logical; whether to include generated quantities. Default is FALSE.
+    #' @param finite Logical; whether to drop non-finite or missing R-hat values. Default is TRUE.
+    #' @param ... Additional arguments.
+    #' @return A numeric vector of R-hat values with class \code{"rhat_summary"}.
+    rhat_summary = function(pars = NULL,
+                            chains = NULL,
+                            best_chains = NULL,
+                            inc_random = FALSE,
+                            inc_transform = TRUE,
+                            inc_generate = FALSE,
+                            finite = TRUE, ...) {
+      rhat_summary(
+        self,
+        pars = pars,
+        chains = chains,
+        best_chains = best_chains,
+        inc_random = inc_random,
+        inc_transform = inc_transform,
+        inc_generate = inc_generate,
+        finite = finite,
+        ...
+      )
     },
 
     #' @description Transform posterior draws to the unconstrained scale.
@@ -847,8 +943,16 @@ MCMC_Fit <- R6::R6Class(
 
 
     #' @description Compute transformed parameters from posterior draws.
+    #' @param progress Progress reporting style: `"auto"`, `"none"`, `"bar"`,
+    #'   or `"message"`. `"auto"` and `"bar"` use line-based messages.
+    #' @param tape Derived-quantity evaluation mode. `"auto"` tries RTMB tape
+    #'   evaluation and falls back to R evaluation on error; `"none"` always uses
+    #'   R evaluation; `"force"` requires tape evaluation and errors if it fails.
     #' @return Transformed parameter draws.
-    transformed_draws = function(tran_fn = NULL) {
+    transformed_draws = function(tran_fn = NULL, progress = c("auto", "none", "bar", "message"),
+                                 tape = c("auto", "none", "force")) {
+      progress_mode <- .rtmb_resolve_progress(progress)
+      tape_mode <- .rtmb_resolve_tape(tape)
       all_draws <- self$draws(
         inc_random = TRUE,
         inc_transform = FALSE,
@@ -894,6 +998,17 @@ MCMC_Fit <- R6::R6Class(
 
       if (length(test_tran) == 0) return(invisible(self))
 
+      taped_tran <- .rtmb_try_make_taped_derived(
+        data = self$model$data,
+        par_template = test_para,
+        derived_fn = wrapper_tran_fn,
+        block = "transform",
+        tape = tape_mode,
+        progress = progress_mode
+      )
+      use_tape <- !is.null(taped_tran)
+      tape_fallback_error <- NULL
+
       tran_names <- character(0)
       self$transform_dims <- list()
 
@@ -916,28 +1031,35 @@ MCMC_Fit <- R6::R6Class(
         variable = tran_names
       )
 
-      cat("Calculating transformed parameters...\n")
+      .rtmb_progress_line("Calculating transformed parameters...", progress_mode)
 
       total_steps <- iter * chains
-      pb <- txtProgressBar(min = 0, max = total_steps, style = 3)
-      counter <- 0
-
-      update_interval <- max(1, floor(total_steps / 100))
+      meter <- .rtmb_progress_meter(total_steps, progress_mode, label = "transformed parameters")
+      on.exit(meter$finish(), add = TRUE)
 
       for (c in seq_len(chains)) {
         for (i in seq_len(iter)) {
           p_list <- constrained_vector_to_list(all_draws[i, c, -1], self$model$par_list)
-          res <- wrapper_tran_fn(self$model$data, p_list)
+          if (isTRUE(use_tape)) {
+            res <- tryCatch(
+              taped_tran$report(p_list),
+              error = function(e) {
+                if (identical(tape_mode, "force")) stop(e)
+                tape_fallback_error <<- e
+                use_tape <<- FALSE
+                wrapper_tran_fn(self$model$data, p_list)
+              }
+            )
+          } else {
+            res <- wrapper_tran_fn(self$model$data, p_list)
+          }
           tran_array[i, c, ] <- unlist(res, use.names = FALSE)
 
-          counter <- counter + 1
-          if (counter %% update_interval == 0) {
-            setTxtProgressBar(pb, counter)
-          }
+          meter$advance(1)
         }
       }
-      setTxtProgressBar(pb, total_steps)
-      close(pb)
+      meter$finish()
+      .rtmb_tape_fallback_message("transformed parameters", tape_fallback_error, progress_mode)
 
       self$transform_fit <- tran_array
       return(invisible(self))
@@ -946,9 +1068,17 @@ MCMC_Fit <- R6::R6Class(
     #' @description Compute generated quantities from posterior draws.
     #' @param code An `rtmb_code(\{ ... \})` or `\{ ... \}` block containing the logic
     #' to be calculated using posterior samples.
+    #' @param progress Progress reporting style: `"auto"`, `"none"`, `"bar"`,
+    #'   or `"message"`. `"auto"` and `"bar"` use line-based messages.
+    #' @param tape Derived-quantity evaluation mode. `"auto"` tries RTMB tape
+    #'   evaluation and falls back to R evaluation on error; `"none"` always uses
+    #'   R evaluation; `"force"` requires tape evaluation and errors if it fails.
     #' @return The `MCMC_Fit` object itself (invisibly).
     #' Results are appended to the `generate_fit` field.
-    generated_quantities = function(code) {
+    generated_quantities = function(code, progress = c("auto", "none", "bar", "message"),
+                                    tape = c("auto", "none", "force")) {
+      progress_mode <- .rtmb_resolve_progress(progress)
+      tape_mode <- .rtmb_resolve_tape(tape)
       raw_code <- substitute(code)
 
       if (is.name(raw_code)) {
@@ -975,7 +1105,7 @@ MCMC_Fit <- R6::R6Class(
         stop("'code' must be specified in the format rtmb_code(generate = { ... }) or { ... }.")
       }
 
-      cat("Running generated_quantities...\n")
+      .rtmb_progress_line("Running generated_quantities...", progress_mode)
 
       gen_fn <- eval(bquote(transform_code(.(gen_ast))))
       environment(gen_fn) <- parent.env(globalenv())
@@ -1008,10 +1138,17 @@ MCMC_Fit <- R6::R6Class(
         }
       }
 
-      test_gq <- gen_fn(self$model$data, test_p_list)
+      test_gq <- tryCatch(
+        gen_fn(self$model$data, test_p_list),
+        error = function(e) e
+      )
+      if (inherits(test_gq, "error")) {
+        .rtmb_skip_generate_error(test_gq, progress_mode)
+        return(invisible(self))
+      }
 
       if (is.null(test_gq) || length(test_gq) == 0) {
-        cat("No generated quantities returned.\n")
+        .rtmb_progress_line("No generated quantities returned.", progress_mode)
         return(invisible(self))
       }
 
@@ -1029,6 +1166,35 @@ MCMC_Fit <- R6::R6Class(
         gq_names <- c(gq_names, flat_nms)
       }
 
+      existing_gq_list <- function(i, c) {
+        if (is.null(self$generate_fit)) return(list())
+        existing_gq <- dimnames(self$generate_fit)[[3]]
+        out <- list()
+        for (g_name in names(self$generate_dims)) {
+          g_dim <- self$generate_dims[[g_name]]
+          flat_nms <- generate_flat_names(g_name, g_dim, self$model$par_names[[g_name]])
+          if (all(flat_nms %in% existing_gq)) {
+            val <- self$generate_fit[i, c, flat_nms]
+            if (length(g_dim) > 1) dim(val) <- g_dim
+            out[[g_name]] <- val
+          }
+        }
+        out
+      }
+
+      taped_gq <- .rtmb_try_make_taped_derived(
+        data = self$model$data,
+        par_template = constrained_vector_to_list(all_draws[1, 1, -1], self$model$par_list),
+        derived_fn = gen_fn,
+        transform_fn = self$model$transform,
+        extra_template = existing_gq_list(1, 1),
+        block = "generate",
+        tape = tape_mode,
+        progress = progress_mode
+      )
+      use_tape <- !is.null(taped_gq)
+      tape_fallback_error <- NULL
+
       # (Omitted)
       new_gq_array <- array(NA, dim = c(iter, chains, length(gq_names)))
       dimnames(new_gq_array) <- list(
@@ -1038,42 +1204,56 @@ MCMC_Fit <- R6::R6Class(
       )
 
       total_steps <- iter * chains
-      pb <- txtProgressBar(min = 0, max = total_steps, style = 3)
-      counter <- 0
+      meter <- .rtmb_progress_meter(total_steps, progress_mode, label = "generated quantities")
+      on.exit(meter$finish(), add = TRUE)
 
-      update_interval <- max(1, floor(total_steps / 100))
-
-      for (c in seq_len(chains)) {
-        for (i in seq_len(iter)) {
-          p_list <- constrained_vector_to_list(all_draws[i, c, -1], self$model$par_list)
-          if (!is.null(self$model$transform)) {
-            tran_res <- self$model$transform(self$model$data, p_list)
-            if (is.list(tran_res)) p_list <- c(p_list, tran_res)
-          }
-          if (!is.null(self$generate_fit)) {
-            existing_gq <- dimnames(self$generate_fit)[[3]]
-            for (g_name in names(self$generate_dims)) {
-              g_dim <- self$generate_dims[[g_name]]
-              flat_nms <- generate_flat_names(g_name, g_dim, self$model$par_names[[g_name]])
-              if (all(flat_nms %in% existing_gq)) {
-                val <- self$generate_fit[i, c, flat_nms]
-                if (length(g_dim) > 1) dim(val) <- g_dim
-                p_list[[g_name]] <- val
+      generate_error <- NULL
+      tryCatch({
+        for (c in seq_len(chains)) {
+          for (i in seq_len(iter)) {
+            p_list <- constrained_vector_to_list(all_draws[i, c, -1], self$model$par_list)
+            extra_gq <- existing_gq_list(i, c)
+            if (isTRUE(use_tape)) {
+              res <- tryCatch(
+                taped_gq$report(p_list, extra_gq),
+                error = function(e) {
+                  if (identical(tape_mode, "force")) stop(e)
+                  tape_fallback_error <<- e
+                  use_tape <<- FALSE
+                  p_r <- p_list
+                  if (!is.null(self$model$transform)) {
+                    tran_res <- self$model$transform(self$model$data, p_r)
+                    if (is.list(tran_res)) p_r <- c(p_r, tran_res)
+                  }
+                  if (length(extra_gq) > 0L) p_r <- c(p_r, extra_gq)
+                  gen_fn(self$model$data, p_r)
+                }
+              )
+            } else {
+              if (!is.null(self$model$transform)) {
+                tran_res <- self$model$transform(self$model$data, p_list)
+                if (is.list(tran_res)) p_list <- c(p_list, tran_res)
               }
+              if (length(extra_gq) > 0L) p_list <- c(p_list, extra_gq)
+              res <- gen_fn(self$model$data, p_list)
             }
-          }
-          res <- gen_fn(self$model$data, p_list)
-          new_gq_array[i, c, ] <- unlist(res, use.names = FALSE)
+            new_gq_array[i, c, ] <- unlist(res, use.names = FALSE)
 
-          counter <- counter + 1
-
-          if (counter %% update_interval == 0) {
-            setTxtProgressBar(pb, counter)
+            meter$advance(1)
           }
         }
+      }, error = function(e) {
+        generate_error <<- e
+        NULL
+      })
+      if (!is.null(generate_error)) {
+        if (identical(tape_mode, "force")) stop(generate_error)
+        meter$finish()
+        .rtmb_skip_generate_error(generate_error, progress_mode)
+        return(invisible(self))
       }
-      setTxtProgressBar(pb, total_steps)
-      close(pb)
+      meter$finish()
+      .rtmb_tape_fallback_message("generated quantities", tape_fallback_error, progress_mode)
 
       if (is.null(self$generate_fit)) {
         self$generate_fit <- new_gq_array
@@ -1088,7 +1268,7 @@ MCMC_Fit <- R6::R6Class(
         self$generate_fit <- merged_gq
       }
 
-      cat("Generated quantities added to samples.\n")
+      .rtmb_progress_line("Generated quantities added to samples.", progress_mode)
       invisible(self)
     },
 

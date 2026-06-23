@@ -5,6 +5,69 @@
 #' @importFrom utils capture.output getFromNamespace modifyList read.csv
 NULL
 
+.rtmb_closed_eval_env <- local({
+  cache <- NULL
+  function() {
+    if (!is.null(cache)) return(cache)
+    ns <- asNamespace("BayesRTMB")
+    out <- new.env(parent = baseenv())
+    imports <- parent.env(ns)
+    if (startsWith(environmentName(imports), "imports:")) {
+      for (nm in ls(imports, all.names = TRUE)) {
+        assign(nm, get(nm, envir = imports, inherits = FALSE), envir = out)
+      }
+    }
+    for (nm in ls(ns, all.names = TRUE)) {
+      assign(nm, get(nm, envir = ns, inherits = FALSE), envir = out)
+    }
+    lockEnvironment(out, bindings = FALSE)
+    cache <<- out
+    out
+  }
+})
+
+.rtmb_assigned_vars <- function(expr) {
+  vars <- character()
+  if (is.call(expr)) {
+    if (identical(expr[[1]], as.name("<-")) || identical(expr[[1]], as.name("="))) {
+      if (is.name(expr[[2]])) vars <- c(vars, as.character(expr[[2]]))
+    } else if (identical(expr[[1]], as.name("{")) && length(expr) > 1L) {
+      for (i in seq_along(expr)[-1]) {
+        vars <- c(vars, .rtmb_assigned_vars(expr[[i]]))
+      }
+    } else if (length(expr) > 1L) {
+      for (i in seq_along(expr)[-1]) {
+        vars <- c(vars, .rtmb_assigned_vars(expr[[i]]))
+      }
+    }
+  }
+  unique(vars)
+}
+
+.rtmb_setup_env_list <- function(x) {
+  if (is.null(x)) return(list())
+  if (is.environment(x)) x <- as.list(x, all.names = TRUE)
+  if (!is.list(x)) {
+    stop("code$setup_env must be a named list or environment.", call. = FALSE)
+  }
+  if (length(x) > 0L && (is.null(names(x)) || any(!nzchar(names(x))))) {
+    stop("code$setup_env must be a named list.", call. = FALSE)
+  }
+  x
+}
+
+.rtmb_setup_env <- function(env = parent.frame(), setup = NULL, exclude = character()) {
+  vars <- if (is.null(setup)) {
+    ls(env, all.names = TRUE)
+  } else {
+    all.vars(setup, functions = FALSE)
+  }
+  vars <- setdiff(unique(vars), exclude)
+  vars <- vars[vapply(vars, exists, logical(1), envir = env, inherits = FALSE)]
+  if (length(vars) == 0L) return(list())
+  mget(vars, envir = env, inherits = FALSE)
+}
+
 
 #' Create an RTMB_Model Object
 #'
@@ -19,8 +82,8 @@ NULL
 #' \strong{Model Compilation and Pre-checking:}
 #' When this function is called, it evaluates the provided data and model blocks.
 #' It performs a "sandbox execution" (pre-check) using dummy initial values to dynamically
-#' detect common structural errors—such as undefined variables, out-of-bounds indices,
-#' or incompatible matrix operations—before proceeding to the computationally expensive
+#' detect common structural errors, such as undefined variables, out-of-bounds indices,
+#' or incompatible matrix operations, before proceeding to the computationally expensive
 #' Automatic Differentiation (MakeADFun) phase. Cryptic backend errors are caught and
 #' translated into user-friendly hints.
 #'
@@ -57,7 +120,6 @@ NULL
 #' @param init A list or numeric vector of initial values for parameters (optional). If not specified, initialized randomly.
 #' @param view Character vector of parameter names to be displayed preferentially at the top when outputting results like \code{summary()} (optional).
 #' @param fixed A named list of parameter values to fix (optional). Useful for scoring or plug-in estimation where some parameters (e.g., item parameters) are fixed to known values.
-
 #'
 #' @return An \code{RTMB_Model} class instance with a compiled and pre-tested automatic differentiation function.
 #'
@@ -120,14 +182,21 @@ NULL
 #' map_named$summary()
 #' }
 #' @param silent Logical; if TRUE, suppresses diagnostic messages during model creation. Default is FALSE.
+#' @param gr_test Logical; if TRUE, evaluate the gradient once after the AD tape is built.
+#'   By default, model creation checks that \code{MakeADFun()} can build the AD tape but skips
+#'   this extra gradient evaluation for speed.
 #'
 #' @return An \code{RTMB_Model} class instance with a compiled and pre-tested automatic differentiation function.
 #'
 #' @export
-rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL, fixed = NULL, silent = FALSE) {
+rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL, fixed = NULL, silent = FALSE, gr_test = FALSE) {
 
   if (is.null(silent)) silent <- FALSE
   if (getOption("BayesRTMB.silent", FALSE)) silent <- TRUE
+  if (is.null(gr_test)) gr_test <- FALSE
+  if (!is.logical(gr_test) || length(gr_test) != 1L || is.na(gr_test)) {
+    stop("gr_test must be TRUE or FALSE.", call. = FALSE)
+  }
 
   old_silent <- options(BayesRTMB.silent = silent)
   on.exit(options(old_silent), add = TRUE)
@@ -148,13 +217,34 @@ rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL,
   }
 
   if ("setup" %in% names(code)) {
-    # Extract data into R environment and evaluate setup code within it
-    dat_env <- list2env(data, parent = parent.frame())
+    # Extract data into a closed environment and evaluate setup code within it.
+    # Helper functions used later should be defined here or called with pkg::fun.
+    setup_env <- .rtmb_setup_env_list(code$setup_env)
+    setup_env_names <- setdiff(names(setup_env), names(data))
+    setup_input <- setup_env
+    setup_input[names(data)] <- data
+    dat_env <- list2env(setup_input, parent = .rtmb_closed_eval_env())
     tryCatch({
       eval(code$setup, envir = dat_env)
     }, error = function(e) {
-      stop(sprintf("[Error in 'setup' block] An error occurred during data preprocessing:\n  %s", conditionMessage(e)), call. = FALSE)
+      msg <- conditionMessage(e)
+      missing_fun <- .rtmb_extract_missing_function(msg)
+      if (!is.na(missing_fun)) {
+        stop(
+          sprintf(
+            "[Error in 'setup' block] Function '%s' was not found.\n  * Define it inside setup = { ... } or call it as package::%s().",
+            missing_fun, missing_fun
+          ),
+          call. = FALSE
+        )
+      }
+      stop(sprintf("[Error in 'setup' block] An error occurred during data preprocessing:\n  %s", msg), call. = FALSE)
     })
+    assigned_setup_vars <- .rtmb_assigned_vars(code$setup)
+    drop_setup_env <- setdiff(setup_env_names, assigned_setup_vars)
+    if (length(drop_setup_env) > 0L) {
+      rm(list = drop_setup_env, envir = dat_env)
+    }
     # Return all created/modified variables to the data list after evaluation
     data <- env_to_ordered_list(dat_env, data, code$setup)
   }
@@ -234,20 +324,23 @@ rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL,
   code <- inject_transform_adreports(code)
 
   # --- 3. Dynamic compilation (model, transform, generate) ---
-  user_env <- if (!is.null(code$env)) code$env else parent.frame()
+  user_env <- .rtmb_closed_eval_env()
 
   exec_model_ast <- code$model
 
-  comp_model <- eval(bquote(model_code(.(code$model), env = user_env)))
+  seed_candidates <- names(evaluated_par_list)[vapply(evaluated_par_list, function(p) p$length > 0L, logical(1))]
+  ad_seed_name <- if (length(seed_candidates) > 0L) seed_candidates[[1L]] else NULL
+
+  comp_model <- eval(bquote(model_code(.(code$model), env = user_env, ad_seed_name = .(ad_seed_name))))
 
   comp_transform <- NULL
   if ("transform" %in% names(code)) {
-    comp_transform <- eval(bquote(transform_code(.(code$transform), env = user_env)))
+    comp_transform <- eval(bquote(transform_code(.(code$transform), env = user_env, ad_seed_name = .(ad_seed_name))))
   }
 
   comp_generate <- NULL
   if ("generate" %in% names(code)) {
-    comp_generate <- eval(bquote(transform_code(.(code$generate), env = user_env)))
+    comp_generate <- eval(bquote(transform_code(.(code$generate), env = user_env, ad_seed_name = .(ad_seed_name))))
   }
 
   # --- 4. Pre-check (Sandbox execution) ---
@@ -289,6 +382,10 @@ rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL,
 
   # --- 5. Create safe wrappers for execution ---
   safe_model <- function(dat, para) { with_rtmb_error_handling({ comp_model(dat, para) }, "model") }
+  environment(safe_model) <- list2env(
+    list(comp_model = comp_model),
+    parent = asNamespace("BayesRTMB")
+  )
 
 
   safe_transformed <- NULL
@@ -298,6 +395,10 @@ rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL,
       if (!is.list(res)) stop("The return value must be a 'named list'.")
       res
     }
+    environment(safe_transformed) <- list2env(
+      list(comp_transform = comp_transform),
+      parent = asNamespace("BayesRTMB")
+    )
     attr(safe_transformed, "raw_expr") <- code$transform
   }
 
@@ -308,6 +409,10 @@ rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL,
       if (!is.list(res)) stop("The return value must be a 'named list'.")
       res
     }
+    environment(safe_generate) <- list2env(
+      list(comp_generate = comp_generate),
+      parent = asNamespace("BayesRTMB")
+    )
     attr(safe_generate, "raw_expr") <- code$generate
   }
 
@@ -321,7 +426,8 @@ rtmb_model <- function(data, code, par_names = list(), init = NULL, view = NULL,
     par_names  = par_names,
     init       = init,
     view       = view,
-    code       = original_code
+    code       = original_code,
+    gr_test    = gr_test
   )
 
 
@@ -338,11 +444,28 @@ report <- function(...) invisible(NULL)
 
 # --- Helper functions for AST exploration ---
 
+.rtmb_call_name <- function(expr) {
+  if (!is.call(expr)) return(NA_character_)
+  head <- expr[[1]]
+  if (is.name(head)) return(as.character(head))
+  if (is.call(head) &&
+      (identical(head[[1]], as.name("::")) || identical(head[[1]], as.name(":::"))) &&
+      length(head) >= 3L &&
+      is.name(head[[3]])) {
+    return(as.character(head[[3]]))
+  }
+  NA_character_
+}
+
+.rtmb_is_call_to <- function(expr, func_name) {
+  identical(.rtmb_call_name(expr), func_name)
+}
+
 # Check if a specific function call (e.g., "report") is included in the expression
 has_function_call <- function(expr, func_name) {
   if (is.atomic(expr) || is.name(expr)) return(FALSE)
   if (is.call(expr)) {
-    if (identical(expr[[1]], as.name(func_name))) return(TRUE)
+    if (.rtmb_is_call_to(expr, func_name)) return(TRUE)
     return(any(sapply(as.list(expr)[-1], has_function_call, func_name = func_name)))
   }
   return(FALSE)
@@ -352,7 +475,7 @@ extract_report_vars <- function(expr) {
   vars <- character()
   if (is.atomic(expr) || is.name(expr)) return(vars)
   if (is.call(expr)) {
-    if (identical(expr[[1]], as.name("report"))) {
+    if (.rtmb_is_call_to(expr, "report")) {
       for (i in seq_along(expr)[-1]) {
         if (is.name(expr[[i]])) vars <- c(vars, as.character(expr[[i]]))
       }
@@ -369,7 +492,7 @@ extract_report_vars <- function(expr) {
 remove_report_calls <- function(expr) {
   if (is.atomic(expr) || is.name(expr)) return(expr)
   if (is.call(expr)) {
-    if (identical(expr[[1]], as.name("report"))) return(NULL)
+    if (.rtmb_is_call_to(expr, "report")) return(NULL)
     new_args <- lapply(as.list(expr), remove_report_calls)
     new_args <- Filter(Negate(is.null), new_args)
     if (length(new_args) > 0) return(as.call(new_args)) else return(NULL)
@@ -419,35 +542,21 @@ inject_transform_adreports <- function(code) {
   return(code)
 }
 
-#' Catch and Translate RTMB Errors into User-Friendly Messages
-#'
-#' @description
-#' This internal helper function wraps an R expression in a [tryCatch()] block to
-#' capture cryptic error messages generated by the RTMB automatic differentiation
-#' engine or C++ backend, translating them into descriptive hints.
-#'
-#' @details
-#' It uses regular expressions to categorize common RTMB failure modes, such as:
-#' \itemize{
-#'   \item **Missing Objects/Functions**: Detects if a variable or a specific distribution
-#'   function (e.g., `normal_lpdf`) is missing from the environment.
-#'   \item **Index Errors**: Identifies subscript out of bounds errors.
-#'   \item **AD Type Destruction**: Catches the "lost class attribute" error, often caused
-#'   by incorrect initialization of vectors (e.g., using `numeric(N)` and partial assignment
-#'   inside loops).
-#'   \item **Matrix Dimension Mismatch**: Identifies non-conformable arguments in
-#'   matrix multiplication.
-#' }
-#'
-#' @param expr An R expression to be evaluated, typically representing the logic within
-#' a specific model block.
-#' @param block_name A character string identifying the context of the error
-#' (e.g., "parameters", "model", "transform", or "generate").
-#'
-#' @return The result of evaluating the \code{expr}. If an error occurs, it throws
-#' a formatted [stop()] message.
-#'
-#' @keywords internal
+# Extract the function name from common "function not found" error messages.
+.rtmb_extract_missing_function <- function(msg) {
+  patterns <- c(
+    "could not find function [\"']([^\"']+)[\"']",
+    "[\"']([^\"']+)[\"'] .*could not find function",
+    "\u95a2\u6570 [\"']([^\"']+)[\"'] .*\u898b\u3064"
+  )
+  for (pat in patterns) {
+    hit <- regexec(pat, msg)
+    val <- regmatches(msg, hit)[[1]]
+    if (length(val) >= 2L) return(val[2])
+  }
+  NA_character_
+}
+
 with_rtmb_error_handling <- function(expr, block_name) {
   tryCatch({
     expr
@@ -470,16 +579,21 @@ with_rtmb_error_handling <- function(expr, block_name) {
     }
 
     # 2. Use of non-existent functions
-    if (grepl("could not find function", msg)) {
-      func_name <- sub(".*function [\"']?(.*?)[\"']? could not.*", "\\1", msg)
-      stop(sprintf("[Error in '%s' block] Undefined function '%s' is used.\n  [Location]: %s",
-                   block_name, func_name, call_str), call. = FALSE)
+    func_name <- .rtmb_extract_missing_function(msg)
+    if (!is.na(func_name)) {
+      stop(sprintf("[Error in '%s' block] Function '%s' was not found.\n  [Location]: %s\n  * Define it inside setup = { ... } or call it as package::%s().",
+                   block_name, func_name, call_str, func_name), call. = FALSE)
     }
 
     # 3. Index error
     if (grepl("subscript out of bounds", msg)) {
       stop(sprintf("[Error in '%s' block] Array or matrix subscript out of bounds.\n  [Location]: %s",
                    block_name, call_str), call. = FALSE)
+    }
+
+    if (grepl("categorical_logit\\(\\) category index is outside", msg)) {
+      stop(sprintf("[Error in '%s' block] %s\n  [Location]: %s",
+                   block_name, msg, call_str), call. = FALSE)
     }
 
     # 4. Destruction of advector / Failure of type conversion
@@ -499,6 +613,64 @@ with_rtmb_error_handling <- function(expr, block_name) {
     stop(sprintf("[Error in '%s' block]\n  [Message]: %s\n  [Location]: %s",
                  block_name, msg, call_str), call. = FALSE)
   })
+}
+
+# Format MakeADFun backend errors with BayesRTMB hints.
+.rtmb_format_makeadfun_error <- function(msg, context = "MakeADFun") {
+  hints <- character(0)
+
+  missing_fun <- .rtmb_extract_missing_function(msg)
+  if (!is.na(missing_fun)) {
+    hints <- c(
+      hints,
+      sprintf("Function '%s' was not found.", missing_fun),
+      sprintf("Define '%s' inside setup = { ... } or call it as package::%s().", missing_fun, missing_fun)
+    )
+  }
+
+  if (grepl("not a valid 'advector'|illegal operation|lost class attribute|Invalid argument to 'advector'", msg)) {
+    hints <- c(
+      hints,
+      "An automatic-differentiation (AD) object was used after an invalid operation.",
+      "Common causes in rtmb_code():",
+      "  1. Indexing a matrix as x[t] when you intended a row, x[t, ].",
+      "  2. Passing a logit/probability vector with the wrong length to categorical_logit().",
+      "  3. Assigning past the end of an AD vector, such as vec[t + 1] when vec has length Trial_t.",
+      "  4. Growing or rebuilding an AD vector inside a loop; initialize with rep(theta[1] * 0, N) or a fixed-size matrix first."
+    )
+  }
+
+  if (grepl("incorrect number of dimensions", msg)) {
+    hints <- c(
+      hints,
+      "An object was indexed with the wrong number of dimensions.",
+      "For example, use x[t, ] for a matrix row and x[t, c] for one matrix cell."
+    )
+  }
+
+  if (grepl("subscript out of bounds|attempt to select", msg)) {
+    hints <- c(
+      hints,
+      "A vector, matrix, or array index is outside its valid range.",
+      "Check that category labels match the length of the probability/logit vector."
+    )
+  }
+
+  if (grepl("Comparison is generally unsafe for AD types", msg)) {
+    hints <- c(
+      hints,
+      "A comparison was applied to an AD value.",
+      "Avoid pmin(), pmax(), ifelse(), or if-statements on parameters/transformed parameters; clip data before rtmb_model() when possible."
+    )
+  }
+
+  hint_text <- if (length(hints) > 0L) {
+    paste0("\n[Hint]:\n  ", paste(hints, collapse = "\n  "))
+  } else {
+    ""
+  }
+
+  paste0("Failed to setup ", context, ".\n[Error]: ", msg, hint_text)
 }
 
 #' Internal function to convert an environment to a list while maintaining original order
@@ -553,7 +725,9 @@ inject_namespace <- function(expr, pkg = "BayesRTMB") {
     func_name <- as.character(expr[[1]])
 
     if (length(func_name) == 1) {
-      if (exists(func_name, envir = asNamespace(pkg), inherits = FALSE)) {
+      if (identical(func_name, "c")) {
+        expr[[1]] <- call(":::", as.name(pkg), as.name(".rtmb_c"))
+      } else if (exists(func_name, envir = asNamespace(pkg), inherits = FALSE)) {
         expr[[1]] <- call(":::", as.name(pkg), as.name(func_name))
       }
     }
@@ -704,12 +878,15 @@ rtmb_code <- function(...) {
 }
 
 
-#' Model Code Wrapper for RTMB
-#'
-#' @param expr A block of code containing model description.
-#' @param env Environment to assign to the generated function.
-#' @return A standard R function object taking (dat, par).
-model_code <- function(expr, env = parent.frame()) {
+# Build the AD seed expression injected into generated model-code functions.
+.rtmb_ad_seed_expr <- function(ad_seed_name = NULL) {
+  if (is.null(ad_seed_name) || !nzchar(ad_seed_name)) {
+    return(quote(.rtmb_ad_seed <- NULL))
+  }
+  substitute(.rtmb_ad_seed <- SEED, list(SEED = as.name(ad_seed_name)))
+}
+
+model_code <- function(expr, env = parent.frame(), ad_seed_name = NULL) {
   raw_expr <- substitute(expr)
 
   if (is.name(raw_expr)) {
@@ -799,6 +976,7 @@ model_code <- function(expr, env = parent.frame()) {
   body_list <- c(
     list(as.name("{")),
     quote(RTMB::getAll(dat, par)),
+    list(.rtmb_ad_seed_expr(ad_seed_name)),
     quote(lp <- 0),
     unname(expr_elements),
     quote(return(lp))
@@ -819,8 +997,9 @@ model_code <- function(expr, env = parent.frame()) {
 #'
 #' @param expr A block of code containing calculations for transformed parameters.
 #' @param env Environment to assign to the generated function.
+#' @param ad_seed_name Optional parameter name used internally to seed RTMB's AD type.
 #' @return A function taking (dat, par) that returns a named list.
-transform_code <- function(expr, env = parent.frame()) {
+transform_code <- function(expr, env = parent.frame(), ad_seed_name = NULL) {
   raw_expr <- substitute(expr)
 
   raw_expr <- inject_namespace(raw_expr, pkg = "BayesRTMB")
@@ -835,6 +1014,7 @@ transform_code <- function(expr, env = parent.frame()) {
     body_list <- c(
       list(as.name("{")),
       quote(RTMB::getAll(dat, par)),
+      list(.rtmb_ad_seed_expr(ad_seed_name)),
       list(quote(return(list())))
     )
     body_expr <- as.call(body_list)
@@ -871,9 +1051,13 @@ transform_code <- function(expr, env = parent.frame()) {
         new_args <- list()
         for (i in seq_along(e)[-1]) {
           sub_e <- e[[i]]
-          if (is.call(sub_e) && identical(sub_e[[1]], as.name("report"))) {
-            if (length(sub_e) > 1 && is.name(sub_e[[2]])) {
-              reported_vars <<- c(reported_vars, as.character(sub_e[[2]]))
+          if (is.call(sub_e) && .rtmb_is_call_to(sub_e, "report")) {
+            if (length(sub_e) > 1) {
+              for (j in seq_along(sub_e)[-1]) {
+                if (is.name(sub_e[[j]])) {
+                  reported_vars <<- c(reported_vars, as.character(sub_e[[j]]))
+                }
+              }
             }
             next
           }
@@ -924,6 +1108,7 @@ transform_code <- function(expr, env = parent.frame()) {
   body_list <- c(
     list(as.name("{")),
     quote(RTMB::getAll(dat, par)),
+    list(.rtmb_ad_seed_expr(ad_seed_name)),
     unname(expr_elements),
     list(as.call(list(as.name("return"), ret_call)))
   )

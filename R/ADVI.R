@@ -11,8 +11,8 @@
 #' @param laplace Logical; whether Laplace approximation is used. Default is FALSE.
 #' @param print_freq Integer; frequency of printing progress to the console. Set to 0 to disable. Default is 500.
 #' @param method Character; type of variational distribution. One of "meanfield", "fullrank", or "hybrid". Default is "meanfield".
-#' @param update_progress Optional function to update a progress bar.
-#' @param update_interval Integer; interval for updating the progress bar. Default is 100.
+#' @param update_progress Optional function for progress reporting.
+#' @param update_interval Integer; interval for progress updates. Default is 100.
 #' @return A list containing `fit`, `random_fit`, `elbo_history`, `elbo_final`, `rel_obj_final`, and `converged`.
 ADVI_method <- function(model, par_list, pl_full,
                         iter = 3000, tol_rel_obj = 0.001,
@@ -99,7 +99,7 @@ ADVI_method <- function(model, par_list, pl_full,
     b1_t <- b1_t * beta1
     b2_t <- b2_t * beta2
 
-    # --- update progress bar ---
+    # --- update progress ---
     if (!is.null(update_progress) && t %% update_interval == 0) {
       update_progress(1)
     }
@@ -303,12 +303,25 @@ ADVI_method <- function(model, par_list, pl_full,
     para_final[i, ] <- unlist(con_list, use.names = FALSE)
   }
 
-  if (method == "hybrid") {
-    elbo_final <- mean(lp_final) + sum(L_diag) + sum(omega) + entropy_const
-  } else if (method == "fullrank") {
-    elbo_final <- mean(lp_final) + sum(L_diag) + entropy_const
+  finite_lp_final <- lp_final[is.finite(lp_final)]
+  final_lp_mean <- if (length(finite_lp_final) > 0L) {
+    mean(finite_lp_final)
   } else {
-    elbo_final <- mean(lp_final) + sum(omega) + entropy_const
+    NA_real_
+  }
+
+  if (method == "hybrid") {
+    elbo_final <- final_lp_mean + sum(L_diag) + sum(omega) + entropy_const
+  } else if (method == "fullrank") {
+    elbo_final <- final_lp_mean + sum(L_diag) + entropy_const
+  } else {
+    elbo_final <- final_lp_mean + sum(omega) + entropy_const
+  }
+  if (!is.finite(elbo_final)) {
+    finite_elbo_history <- elbo_history[is.finite(elbo_history)]
+    if (length(finite_elbo_history) > 0L) {
+      elbo_final <- finite_elbo_history[length(finite_elbo_history)]
+    }
   }
 
   fit <- array(NA, dim = c(num_samples, 1, length(fixed_names) + 1))

@@ -40,13 +40,18 @@ VB_Fit <- R6::R6Class(
     best_chain     = NULL,
     mu_history     = NULL,
 
-    # 1. Constructor
+    # --- Point estimates ---
     #' @description Get point estimate for a target parameter.
     #' @param target Target parameter name.
-    #' @param chains Numeric vector of chains to include. If NULL, all chains are used.
+    #' @param chains Numeric vector of chains to include. If NULL, the best chain is used.
     #' @param best_chains Integer; number of best chains to retain based on ELBO.
     #' @return Matrix, array, vector, or scalar point estimate.
     get_point_estimate = function(target, chains = NULL, best_chains = NULL) {
+      if (is.null(chains) && is.null(best_chains) &&
+          !is.null(self$best_chain) && is.finite(self$best_chain)) {
+        chains <- self$best_chain
+      }
+
       target_draws <- self$draws(pars = target, chains = chains, best_chains = best_chains, inc_transform = TRUE, inc_generate = TRUE)
       if (dim(target_draws)[3] == 0) stop("Parameter not found: ", target)
 
@@ -71,6 +76,65 @@ VB_Fit <- R6::R6Class(
       if (length(t_dim) > 1) dim(target_map) <- t_dim
 
       return(target_map)
+    },
+
+    #' @description Get point estimates from variational draws.
+    #' @param pars Optional character or numeric vector of parameter names or indices to extract.
+    #'        Supports special keywords: "parameters", "transform", "generate", and "all".
+    #' @param type Character string specifying the estimation type.
+    #' @param component Character string specifying the component to filter by.
+    #' @param chains Numeric vector of chains to include. If NULL, the best chain is used.
+    #' @param best_chains Number of best chains to include.
+    #' @param drop Logical; if TRUE and only one parameter is selected, return the value directly instead of a list.
+    #' @param ... Additional arguments passed to draws().
+    #' @return A named list of point estimates, or a single value if `drop = TRUE`.
+    estimate = function(pars = NULL,
+                        type = c("mean", "EAP", "marginal_map", "joint_map", "MAP"),
+                        component = c("all", "parameters", "transform", "generate"),
+                        chains = NULL,
+                        best_chains = NULL,
+                        drop = TRUE,
+                        ...) {
+      if (is.null(chains) && is.null(best_chains) &&
+          !is.null(self$best_chain) && is.finite(self$best_chain)) {
+        chains <- self$best_chain
+      }
+
+      super$estimate(
+        pars = pars,
+        type = type,
+        component = component,
+        chains = chains,
+        best_chains = best_chains,
+        drop = drop,
+        ...
+      )
+    },
+
+    #' @description Calculate Expected A Posteriori (EAP) estimates from the best variational estimate by default.
+    #' @param pars Optional character vector of parameter names to extract.
+    #' @param chains Numeric vector of chains to include. If NULL, the best chain is used.
+    #' @param best_chains Number of best chains to include.
+    #' @param drop Logical; whether to drop the list if only one parameter is selected.
+    #' @param ... Additional arguments passed to `estimate()`.
+    #' @return A named list of EAP estimates.
+    EAP = function(pars = "parameters", chains = NULL, best_chains = NULL, drop = TRUE, ...) {
+      self$estimate(pars = pars, type = "EAP", chains = chains, best_chains = best_chains, drop = drop, ...)
+    },
+
+    #' @description Calculate Maximum A Posteriori (MAP) estimates from the best variational estimate by default.
+    #' @param pars Optional character vector of parameter names to extract.
+    #' @param chains Numeric vector of chains to include. If NULL, the best chain is used.
+    #' @param best_chains Number of best chains to include.
+    #' @param type Character string; "marginal" or "joint" MAP.
+    #' @param drop Logical; whether to drop the list if only one parameter is selected.
+    #' @param ... Additional arguments passed to `estimate()`.
+    #' @return A named list of MAP estimates.
+    MAP = function(pars = "parameters", chains = NULL, best_chains = NULL,
+                   type = c("marginal", "joint"), drop = TRUE, ...) {
+      type <- match.arg(type)
+      est_type <- if (type == "joint") "joint_map" else "marginal_map"
+      self$estimate(pars = pars, type = est_type, chains = chains, best_chains = best_chains, drop = drop, ...)
     },
 
     #' @description Create a new `VB_Fit` object.
@@ -525,8 +589,16 @@ VB_Fit <- R6::R6Class(
 
     #' @description Compute transformed parameters from posterior draws.
     #' @param tran_fn An optional user-supplied function that takes data and parameter lists to return transformed quantities.
+    #' @param progress Progress reporting style: `"auto"`, `"none"`, `"bar"`,
+    #'   or `"message"`. `"auto"` and `"bar"` use line-based messages.
+    #' @param tape Derived-quantity evaluation mode. `"auto"` tries RTMB tape
+    #'   evaluation and falls back to R evaluation on error; `"none"` always uses
+    #'   R evaluation; `"force"` requires tape evaluation and errors if it fails.
     #' @return The `VB_Fit` object itself, invisibly.
-    transformed_draws = function(tran_fn = NULL) {
+    transformed_draws = function(tran_fn = NULL, progress = c("auto", "none", "bar", "message"),
+                                 tape = c("auto", "none", "force")) {
+      progress_mode <- .rtmb_resolve_progress(progress)
+      tape_mode <- .rtmb_resolve_tape(tape)
       all_draws <- self$draws(
         inc_random = TRUE,
         inc_transform = FALSE,
@@ -555,6 +627,17 @@ VB_Fit <- R6::R6Class(
 
       if (length(test_tran) == 0) return(invisible(self))
 
+      taped_tran <- .rtmb_try_make_taped_derived(
+        data = self$model$data,
+        par_template = test_para,
+        derived_fn = wrapper_tran_fn,
+        block = "transform",
+        tape = tape_mode,
+        progress = progress_mode
+      )
+      use_tape <- !is.null(taped_tran)
+      tape_fallback_error <- NULL
+
       tran_names <- character(0)
       self$transform_dims <- list()
 
@@ -577,18 +660,35 @@ VB_Fit <- R6::R6Class(
         variable = tran_names
       )
 
-      pb <- txtProgressBar(min = 0, max = iter * chains, style = 3)
-      counter <- 0
+      .rtmb_progress_line("Calculating transformed parameters...", progress_mode)
+
+      total_steps <- iter * chains
+      meter <- .rtmb_progress_meter(total_steps, progress_mode, label = "transformed parameters")
+      on.exit(meter$finish(), add = TRUE)
+
       for (c in seq_len(chains)) {
         for (i in seq_len(iter)) {
           p_list <- constrained_vector_to_list(all_draws[i, c, -1], self$model$par_list)
-          res <- wrapper_tran_fn(self$model$data, p_list)
+          if (isTRUE(use_tape)) {
+            res <- tryCatch(
+              taped_tran$report(p_list),
+              error = function(e) {
+                if (identical(tape_mode, "force")) stop(e)
+                tape_fallback_error <<- e
+                use_tape <<- FALSE
+                wrapper_tran_fn(self$model$data, p_list)
+              }
+            )
+          } else {
+            res <- wrapper_tran_fn(self$model$data, p_list)
+          }
           tran_array[i, c, ] <- unlist(res, use.names = FALSE)
-          counter <- counter + 1
-          setTxtProgressBar(pb, counter)
+
+          meter$advance(1)
         }
       }
-      close(pb)
+      meter$finish()
+      .rtmb_tape_fallback_message("transformed parameters", tape_fallback_error, progress_mode)
 
       self$transform_fit <- tran_array
       return(invisible(self))
@@ -597,9 +697,17 @@ VB_Fit <- R6::R6Class(
     #' @description Compute generated quantities from posterior draws.
     #' @param code An `rtmb_code(\{ ... \})` or `\{ ... \}` block containing the logic
     #' to be calculated using posterior samples.
+    #' @param progress Progress reporting style: `"auto"`, `"none"`, `"bar"`,
+    #'   or `"message"`. `"auto"` and `"bar"` use line-based messages.
+    #' @param tape Derived-quantity evaluation mode. `"auto"` tries RTMB tape
+    #'   evaluation and falls back to R evaluation on error; `"none"` always uses
+    #'   R evaluation; `"force"` requires tape evaluation and errors if it fails.
     #' @return The `VB_Fit` object itself (invisibly).
     #' Results are appended to the `generate_fit` field.
-    generated_quantities = function(code) {
+    generated_quantities = function(code, progress = c("auto", "none", "bar", "message"),
+                                    tape = c("auto", "none", "force")) {
+      progress_mode <- .rtmb_resolve_progress(progress)
+      tape_mode <- .rtmb_resolve_tape(tape)
       raw_code <- substitute(code)
 
       if (is.name(raw_code)) {
@@ -625,6 +733,8 @@ VB_Fit <- R6::R6Class(
       } else {
         stop("'code' must be specified in the format rtmb_code(generate = { ... }) or { ... }.")
       }
+
+      .rtmb_progress_line("Running generated_quantities...", progress_mode)
 
       gen_fn <- eval(bquote(transform_code(.(gen_ast))))
       environment(gen_fn) <- parent.env(globalenv())
@@ -654,9 +764,19 @@ VB_Fit <- R6::R6Class(
           }
         }
       }
-      test_gq <- gen_fn(self$model$data, test_p_list)
+      test_gq <- tryCatch(
+        gen_fn(self$model$data, test_p_list),
+        error = function(e) e
+      )
+      if (inherits(test_gq, "error")) {
+        .rtmb_skip_generate_error(test_gq, progress_mode)
+        return(invisible(self))
+      }
 
-      if (is.null(test_gq) || length(test_gq) == 0) return(invisible(self))
+      if (is.null(test_gq) || length(test_gq) == 0) {
+        .rtmb_progress_line("No generated quantities returned.", progress_mode)
+        return(invisible(self))
+      }
 
       gq_names <- character(0)
       for (name in names(test_gq)) {
@@ -666,40 +786,91 @@ VB_Fit <- R6::R6Class(
         gq_names <- c(gq_names, generate_flat_names(name, dim_val, self$model$par_names[[name]]))
       }
 
+      existing_gq_list <- function(i, c) {
+        if (is.null(self$generate_fit)) return(list())
+        existing_gq <- dimnames(self$generate_fit)[[3]]
+        out <- list()
+        for (g_name in names(self$generate_dims)) {
+          g_dim <- self$generate_dims[[g_name]]
+          flat_nms <- generate_flat_names(g_name, g_dim, self$model$par_names[[g_name]])
+          if (all(flat_nms %in% existing_gq)) {
+            val <- self$generate_fit[i, c, flat_nms]
+            if (length(g_dim) > 1) dim(val) <- g_dim
+            out[[g_name]] <- val
+          }
+        }
+        out
+      }
+
+      taped_gq <- .rtmb_try_make_taped_derived(
+        data = self$model$data,
+        par_template = constrained_vector_to_list(all_draws[1, 1, -1], self$model$par_list),
+        derived_fn = gen_fn,
+        transform_fn = self$model$transform,
+        extra_template = existing_gq_list(1, 1),
+        block = "generate",
+        tape = tape_mode,
+        progress = progress_mode
+      )
+      use_tape <- !is.null(taped_gq)
+      tape_fallback_error <- NULL
+
       # 5. Array for storing results
       new_gq_array <- array(NA, dim = c(iter, chains, length(gq_names)))
       dimnames(new_gq_array) <- list(iteration = NULL, chain = paste0("est", seq_len(chains)), variable = gq_names)
 
       # 6. Execute for all estimates and samples
-      pb <- txtProgressBar(min = 0, max = iter * chains, style = 3)
-      counter <- 0
-      for (c in seq_len(chains)) {
-        for (i in seq_len(iter)) {
-          p_list <- constrained_vector_to_list(all_draws[i, c, -1], self$model$par_list)
-          if (!is.null(self$model$transform)) {
-            tran_res <- self$model$transform(self$model$data, p_list)
-            if (is.list(tran_res)) p_list <- c(p_list, tran_res)
-          }
-          if (!is.null(self$generate_fit)) {
-            existing_gq <- dimnames(self$generate_fit)[[3]]
-            for (g_name in names(self$generate_dims)) {
-              g_dim <- self$generate_dims[[g_name]]
-              flat_nms <- generate_flat_names(g_name, g_dim, self$model$par_names[[g_name]])
-              # Extract only those existing in generate_fit
-              if (all(flat_nms %in% existing_gq)) {
-                val <- self$generate_fit[i, c, flat_nms]
-                if (length(g_dim) > 1) dim(val) <- g_dim
-                p_list[[g_name]] <- val
+      total_steps <- iter * chains
+      meter <- .rtmb_progress_meter(total_steps, progress_mode, label = "generated quantities")
+      on.exit(meter$finish(), add = TRUE)
+
+      generate_error <- NULL
+      tryCatch({
+        for (c in seq_len(chains)) {
+          for (i in seq_len(iter)) {
+            p_list <- constrained_vector_to_list(all_draws[i, c, -1], self$model$par_list)
+            extra_gq <- existing_gq_list(i, c)
+            if (isTRUE(use_tape)) {
+              res <- tryCatch(
+                taped_gq$report(p_list, extra_gq),
+                error = function(e) {
+                  if (identical(tape_mode, "force")) stop(e)
+                  tape_fallback_error <<- e
+                  use_tape <<- FALSE
+                  p_r <- p_list
+                  if (!is.null(self$model$transform)) {
+                    tran_res <- self$model$transform(self$model$data, p_r)
+                    if (is.list(tran_res)) p_r <- c(p_r, tran_res)
+                  }
+                  if (length(extra_gq) > 0L) p_r <- c(p_r, extra_gq)
+                  gen_fn(self$model$data, p_r)
+                }
+              )
+            } else {
+              if (!is.null(self$model$transform)) {
+                tran_res <- self$model$transform(self$model$data, p_list)
+                if (is.list(tran_res)) p_list <- c(p_list, tran_res)
               }
+              if (length(extra_gq) > 0L) p_list <- c(p_list, extra_gq)
+              res <- gen_fn(self$model$data, p_list)
             }
+            new_gq_array[i, c, ] <- unlist(res, use.names = FALSE)
+
+            meter$advance(1)
           }
-          res <- gen_fn(self$model$data, p_list)
-          new_gq_array[i, c, ] <- unlist(res, use.names = FALSE)
-          counter <- counter + 1
-          setTxtProgressBar(pb, counter)
         }
+      }, error = function(e) {
+        generate_error <<- e
+        NULL
+      })
+      if (!is.null(generate_error)) {
+        if (identical(tape_mode, "force")) stop(generate_error)
+        meter$finish()
+        .rtmb_skip_generate_error(generate_error, progress_mode)
+        return(invisible(self))
       }
-      close(pb)
+      meter$finish()
+      .rtmb_tape_fallback_message("generated quantities", tape_fallback_error, progress_mode)
 
       # 7. Merge with existing results
       if (is.null(self$generate_fit)) {
@@ -713,7 +884,7 @@ VB_Fit <- R6::R6Class(
         self$generate_fit <- merged_gq
       }
 
-      cat("Generated quantities added to samples.\n")
+      .rtmb_progress_line("Generated quantities added to samples.", progress_mode)
       invisible(self)
     },
 

@@ -31,7 +31,10 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 #   mu = Dim(N)
 # 
 #   # Matrix parameter (N rows, M columns)
-#   X = Dim(N, M)
+#   X = Dim(c(N, M))
+# 
+#   # Array parameter (I x J x K)
+#   A = Dim(c(I, J, K))
 # }
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -56,4 +59,28 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 #   N <- length(Y)  # Get the sample size of the observed data
 #   P <- ncol(X)    # Get the number of columns in the design matrix (number of predictors)
 # }
+
+## ----eval=FALSE---------------------------------------------------------------
+# model = {
+#   eta <- rtmb_vector(0, N)
+#   for (i in seq_len(N)) {
+#     eta[i] <- alpha + X[i, ] %*% beta
+#   }
+#   Y ~ normal(eta, sigma)
+# }
+
+## ----eval=FALSE---------------------------------------------------------------
+# model = {
+#   logit_x <- rtmb_array(0, dim = c(N_time, C, D))
+#   for (t in seq_len(N_time)) {
+#     for (c in seq_len(C)) {
+#       for (d in seq_len(D)) {
+#         logit_x[t, c, d] <- alpha[d] + beta[d] * X[t, c]
+#       }
+#     }
+#   }
+# }
+
+## ----eval=FALSE---------------------------------------------------------------
+# fit2 <- upgrade_fit(fit)
 

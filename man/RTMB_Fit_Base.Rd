@@ -103,7 +103,7 @@ Calculate Expected A Posteriori (EAP) estimates from posterior samples.
   pars = "parameters",
   chains = NULL,
   best_chains = NULL,
-  drop = FALSE,
+  drop = TRUE,
   ...
 )}\if{html}{\out{</div>}}
 }
@@ -138,7 +138,7 @@ Calculate Maximum A Posteriori (MAP) estimates.
   chains = NULL,
   best_chains = NULL,
   type = c("marginal", "joint"),
-  drop = FALSE,
+  drop = TRUE,
   ...
 )}\if{html}{\out{</div>}}
 }
@@ -170,7 +170,12 @@ A named list of MAP estimates.
 \subsection{Method \code{rotate()}}{
 Rotate sampled parameters.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{RTMB_Fit_Base$rotate(target, reference = NULL, linked = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{RTMB_Fit_Base$rotate(
+  target,
+  reference = NULL,
+  linked = NULL,
+  principal = FALSE
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -182,11 +187,9 @@ Rotate sampled parameters.
 
 \item{\code{linked}}{Character vector of variable names to be rotated in the same direction.}
 
-\item{\code{overwrite}}{Logical; whether to overwrite the stored draws. If FALSE, adds to generated quantities. Default is FALSE.}
-
-\item{\code{suffix}}{Character string to append to the rotated variable names when overwrite is FALSE. Default is "rot".}
-
-\item{\code{...}}{Additional arguments passed to the rotation function.}
+\item{\code{principal}}{Logical; if TRUE and `reference` is NULL, the point estimate
+is first rotated to its principal axes and then used as the Procrustes
+reference. This is useful for MDU configurations.}
 }
 \if{html}{\out{</div>}}
 }

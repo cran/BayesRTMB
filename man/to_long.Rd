@@ -4,7 +4,14 @@
 \alias{to_long}
 \title{Convert Wide Data to Long Format}
 \usage{
-to_long(data, within = NULL, label = NULL, value = "Value", id = NULL)
+to_long(
+  data,
+  within = NULL,
+  label = NULL,
+  value = "Value",
+  id = NULL,
+  sort = FALSE
+)
 }
 \arguments{
 \item{data}{A data frame in wide format.}
@@ -14,16 +21,23 @@ to_long(data, within = NULL, label = NULL, value = "Value", id = NULL)
   \item A character vector of column names.
   \item A range string like \code{"time1:time4"}.
   \item A prefix string like \code{"time"} (matches all columns starting with "time").
+  \item A list of column-name vectors or range/prefix specifications to
+    concatenate into one long value column.
+  \item Multiple range/prefix/name specifications when \code{value} has the same length.
 }}
 
 \item{label}{The name for the new column that will contain the level names (e.g., "Time"). 
 If NULL, it defaults to the prefix used in \code{within} or "Condition".}
 
-\item{value}{The name for the new column that will contain the measurement values. 
-Default is "Value".}
+\item{value}{The name for the new column that will contain the measurement values.
+Can be a character vector for multiple measurement groups. Default is "Value".}
 
 \item{id}{The identifier columns that should be repeated for each row. 
 If NULL (default), all columns NOT specified in \code{within} are treated as IDs.}
+
+\item{sort}{Logical; if TRUE, sort the output by \code{id} and the within
+label. If FALSE (default), preserve the original row order of \code{data}
+and the within-column order inside each row.}
 }
 \value{
 A data frame in long format.

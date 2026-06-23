@@ -369,6 +369,10 @@ Distributions for Special Types</a></li>
 (Dim)</a></li>
 <li><a href="#about-mathematical-functions" id="toc-about-mathematical-functions">4. About Mathematical
 Functions</a></li>
+<li><a href="#ad-compatible-working-containers" id="toc-ad-compatible-working-containers">5. AD-Compatible Working
+Containers</a></li>
+<li><a href="#upgrading-saved-fit-objects" id="toc-upgrading-saved-fit-objects">6. Upgrading Saved Fit
+Objects</a></li>
 <li><a href="#conclusion" id="toc-conclusion">Conclusion</a></li>
 </ul>
 </div>
@@ -417,8 +421,11 @@ variables.</p>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  mu <span class="ot">=</span> <span class="fu">Dim</span>(N)</span>
 <span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  </span>
 <span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="co"># Matrix parameter (N rows, M columns)</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  X <span class="ot">=</span> <span class="fu">Dim</span>(N, M)</span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>}</span></code></pre></div>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  X <span class="ot">=</span> <span class="fu">Dim</span>(<span class="fu">c</span>(N, M))</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="co"># Array parameter (I x J x K)</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  A <span class="ot">=</span> <span class="fu">Dim</span>(<span class="fu">c</span>(I, J, K))</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>}</span></code></pre></div>
 <p>Here we are defining generic continuous parameters, but by using the
 <code>type</code> argument you can define parameters (types) with more
 complex structures, such as “correlation matrices” or “sum-to-zero
@@ -494,8 +501,8 @@ written here are, they will not negatively affect the estimation speed
 (MAP or MCMC). Also, if you forgot to write something during model
 definition or later decide you want to compute another quantity, you can
 calculate these retroactively by calling the
-<code>mdl$generated_quantities(new_generate_code)</code> method on the
-estimated model object.</p>
+<code>fit$generated_quantities(new_generate_code)</code> method on the
+fitted object.</p>
 </blockquote>
 </div>
 </div>
@@ -685,7 +692,8 @@ dimensions of parameters using <code>Dim()</code>.</p>
 <li><strong>Scalar</strong>: <code>Dim()</code> or
 <code>Dim(1)</code></li>
 <li><strong>Vector</strong>: <code>Dim(N)</code></li>
-<li><strong>Matrix</strong>: <code>Dim(N, M)</code></li>
+<li><strong>Matrix</strong>: <code>Dim(c(N, M))</code></li>
+<li><strong>Array</strong>: <code>Dim(c(I, J, K))</code></li>
 </ul>
 <p>You can also enforce various constraints using arguments: *
 <code>lower = 0, upper = 1</code>: Specifies the range of values (e.g.,
@@ -877,6 +885,52 @@ adding a small epsilon for numerical stability.</td>
 </tbody>
 </table>
 </div>
+<div id="ad-compatible-working-containers" class="section level2">
+<h2>5. AD-Compatible Working Containers</h2>
+<p>In most models, the fastest and simplest approach is to write
+vectorized code. For example, prefer a single vectorized likelihood such
+as <code>Y ~ normal(mu, sigma)</code> over manually filling a temporary
+vector inside a loop.</p>
+<p>When you do need a mutable working vector or array whose elements
+will later be assigned AD values, use <code>rtmb_vector()</code> or
+<code>rtmb_array()</code> instead of <code>numeric()</code>,
+<code>matrix()</code>, or <code>array()</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  eta <span class="ot">&lt;-</span> <span class="fu">rtmb_vector</span>(<span class="dv">0</span>, N)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(N)) {</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>    eta[i] <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X[i, ] <span class="sc">%*%</span> beta</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  }</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  Y <span class="sc">~</span> <span class="fu">normal</span>(eta, sigma)</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  logit_x <span class="ot">&lt;-</span> <span class="fu">rtmb_array</span>(<span class="dv">0</span>, <span class="at">dim =</span> <span class="fu">c</span>(N_time, C, D))</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="fu">seq_len</span>(N_time)) {</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    <span class="cf">for</span> (c <span class="cf">in</span> <span class="fu">seq_len</span>(C)) {</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>      <span class="cf">for</span> (d <span class="cf">in</span> <span class="fu">seq_len</span>(D)) {</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>        logit_x[t, c, d] <span class="ot">&lt;-</span> alpha[d] <span class="sc">+</span> beta[d] <span class="sc">*</span> X[t, c]</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>      }</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>    }</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  }</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>}</span></code></pre></div>
+<p>Inside <code>rtmb_code()</code>, BayesRTMB usually provides the AD
+seed automatically from the model parameters, so you normally do not
+need to set the <code>seed</code> argument. These helpers are mainly for
+assignment-heavy code. If the same calculation can be expressed directly
+with vectorized matrix or array operations, the vectorized form is
+usually preferable for both tape construction and repeated AD
+evaluation.</p>
+</div>
+<div id="upgrading-saved-fit-objects" class="section level2">
+<h2>6. Upgrading Saved Fit Objects</h2>
+<p>Saved fit objects created by older BayesRTMB versions may not
+automatically have methods added in newer versions. Use
+<code>upgrade_fit()</code> to rebuild an existing MCMC, VB, MAP, or
+classic fit object with the currently loaded class definitions.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>fit2 <span class="ot">&lt;-</span> <span class="fu">upgrade_fit</span>(fit)</span></code></pre></div>
+<p>This does not refit the model. It copies the stored estimation
+results into a new fit object, and by default also rebuilds the embedded
+model object when possible.</p>
+</div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>
 <p>Rather than writing a complex model from the beginning, it’s better
@@ -885,8 +939,8 @@ still under development, and we plan to make them more user-friendly in
 the future.</p>
 <p>For standard wrapper models, see <a href="wrapper_functions.html">Wrapper Functions</a>. For mixed models
 and GLMMs in particular, see <a href="rtmb_glmer.html">Hierarchical
-Models and GLMMs</a>. For the internal inference pipeline, see <a href="rtmb_internals.html">RTMB Internals and Inference
-Algorithms</a>.</p>
+Models and GLMMs</a>. For the internal inference pipeline, see <a href="rtmb_internals.html">RTMB Internals and Inference Algorithms</a>.
+For function-level reference material, see <a href="analysis_reference.html">Analysis Reference</a>.</p>
 </div>
 
 

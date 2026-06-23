@@ -368,6 +368,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><a href="#ad型に対する-if-文" id="toc-ad型に対する-if-文">AD型に対する if 文</a></li>
 <li><a href="#初期値" id="toc-初期値">初期値</a></li>
 <li><a href="#random-true" id="toc-random-true">random = TRUE</a></li>
+<li><a href="#ad対応の作業用コンテナ" id="toc-ad対応の作業用コンテナ">AD対応の作業用コンテナ</a></li>
+<li><a href="#保存済み-fit-object-の更新" id="toc-保存済み-fit-object-の更新">保存済み fit object の更新</a></li>
 </ul></li>
 <li><a href="#次に読む記事" id="toc-次に読む記事">次に読む記事</a></li>
 </ul>
@@ -495,14 +497,18 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <td align="left"><code>N x P</code> 行列</td>
 </tr>
 <tr class="even">
+<td align="left"><code>Dim(c(I, J, K))</code></td>
+<td align="left">3次元以上の配列</td>
+</tr>
+<tr class="odd">
 <td align="left"><code>Dim(lower = 0)</code></td>
 <td align="left">正の値に制約</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>Dim(lower = 0, upper = 1)</code></td>
 <td align="left">0から1の範囲に制約</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>Dim(G, random = TRUE)</code></td>
 <td align="left">ランダム効果として扱う</td>
 </tr>
@@ -968,6 +974,47 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>ただし、すべてのパラメータに付ければよいわけではありません。固定効果として推定したい回帰係数や切片には、通常
 <code>random = TRUE</code> は付けません。</p>
 </div>
+<div id="ad対応の作業用コンテナ" class="section level2">
+<h2>AD対応の作業用コンテナ</h2>
+<p>多くの場合、もっとも速く安定しやすいのはベクトル化されたコードです。たとえば、<code>Y ~ normal(mu, sigma)</code>
+のように一度に尤度を書けるなら、その書き方を優先します。</p>
+<p>一方で、<code>for</code>
+ループの中で要素を順番に代入しながら、あとから AD
+型の値が入るベクトルや配列を作りたいことがあります。その場合は、<code>numeric()</code>、<code>matrix()</code>、<code>array()</code>
+の代わりに <code>rtmb_vector()</code> や <code>rtmb_array()</code>
+を使います。</p>
+<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb39-2"><a href="#cb39-2" tabindex="-1"></a>  eta <span class="ot">&lt;-</span> <span class="fu">rtmb_vector</span>(<span class="dv">0</span>, N)</span>
+<span id="cb39-3"><a href="#cb39-3" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(N)) {</span>
+<span id="cb39-4"><a href="#cb39-4" tabindex="-1"></a>    eta[i] <span class="ot">&lt;-</span> alpha <span class="sc">+</span> X[i, ] <span class="sc">%*%</span> beta</span>
+<span id="cb39-5"><a href="#cb39-5" tabindex="-1"></a>  }</span>
+<span id="cb39-6"><a href="#cb39-6" tabindex="-1"></a>  Y <span class="sc">~</span> <span class="fu">normal</span>(eta, sigma)</span>
+<span id="cb39-7"><a href="#cb39-7" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a>model <span class="ot">=</span> {</span>
+<span id="cb40-2"><a href="#cb40-2" tabindex="-1"></a>  logit_x <span class="ot">&lt;-</span> <span class="fu">rtmb_array</span>(<span class="dv">0</span>, <span class="at">dim =</span> <span class="fu">c</span>(N_time, C, D))</span>
+<span id="cb40-3"><a href="#cb40-3" tabindex="-1"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="fu">seq_len</span>(N_time)) {</span>
+<span id="cb40-4"><a href="#cb40-4" tabindex="-1"></a>    <span class="cf">for</span> (c <span class="cf">in</span> <span class="fu">seq_len</span>(C)) {</span>
+<span id="cb40-5"><a href="#cb40-5" tabindex="-1"></a>      <span class="cf">for</span> (d <span class="cf">in</span> <span class="fu">seq_len</span>(D)) {</span>
+<span id="cb40-6"><a href="#cb40-6" tabindex="-1"></a>        logit_x[t, c, d] <span class="ot">&lt;-</span> alpha[d] <span class="sc">+</span> beta[d] <span class="sc">*</span> X[t, c]</span>
+<span id="cb40-7"><a href="#cb40-7" tabindex="-1"></a>      }</span>
+<span id="cb40-8"><a href="#cb40-8" tabindex="-1"></a>    }</span>
+<span id="cb40-9"><a href="#cb40-9" tabindex="-1"></a>  }</span>
+<span id="cb40-10"><a href="#cb40-10" tabindex="-1"></a>}</span></code></pre></div>
+<p><code>rtmb_code()</code> の中では、通常、BayesRTMB
+がモデルパラメータから AD seed を自動的に用意するため、<code>seed</code>
+引数を指定する必要はありません。ただし、これはあくまで代入を多用するコードのための補助です。同じ計算を行列演算やベクトル化で書ける場合は、テープ化の時間とAD評価の速度の両方の面で、ベクトル化した書き方を優先するのがおすすめです。</p>
+</div>
+<div id="保存済み-fit-object-の更新" class="section level2">
+<h2>保存済み fit object の更新</h2>
+<p>古いバージョンの BayesRTMB で保存した fit object
+は、新しいバージョンで追加されたメソッドをそのまま持っていないことがあります。その場合は、<code>upgrade_fit()</code>
+を使うと、保存済みの MCMC、VB、MAP、classic の fit object
+を現在読み込まれているクラス定義で作り直せます。</p>
+<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" tabindex="-1"></a>fit2 <span class="ot">&lt;-</span> <span class="fu">upgrade_fit</span>(fit)</span></code></pre></div>
+<p>これはモデルを再推定する関数ではありません。保存されている推定結果を新しい
+fit object
+に移し替え、可能な場合は内部のモデルオブジェクトも更新します。</p>
+</div>
 </div>
 <div id="次に読む記事" class="section level1">
 <h1>次に読む記事</h1>
@@ -978,6 +1025,9 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>階層モデルや GLMM を wrapper で詳しく扱いたい場合は、<a href="ja-rtmb_glmer.html">階層モデル・GLMM・分散分析</a>
 を参照してください。</p>
 <p>まずパッケージ全体をざっと試したい場合は、<a href="ja-quick_start.html">クイックスタート</a> を参照してください。</p>
+<p>分析中に fit object のメソッド、モデル比較、固定パラメータ、分布、AD
+テープ化の注意点を確認したい場合は、<a href="ja-analysis_reference.html">分析リファレンス</a>
+を参照してください。</p>
 </div>
 
 

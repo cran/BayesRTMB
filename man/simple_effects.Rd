@@ -4,7 +4,14 @@
 \alias{simple_effects}
 \title{Calculate Simple Effects}
 \usage{
-simple_effects(fit, effect, prob = 0.95, sd_multiplier = 1, ...)
+simple_effects(
+  fit,
+  effect,
+  prob = 0.95,
+  sd_multiplier = 1,
+  sd_slice = NULL,
+  ...
+)
 }
 \arguments{
 \item{fit}{Model fit object (e.g., `map_fit`, `mcmc_fit`).}
@@ -15,10 +22,17 @@ simple_effects(fit, effect, prob = 0.95, sd_multiplier = 1, ...)
 
 \item{sd_multiplier}{Multiplier for SD for continuous moderators (default is 1).}
 
+\item{sd_slice}{Logical or NULL. If TRUE, continuous moderators are evaluated at
+mean - SD, mean, and mean + SD. If FALSE, all observed moderator values are used.
+If NULL (default), sd slicing is used automatically when the moderator has 6 or more
+unique values.}
+
 \item{...}{Additional arguments.}
 }
 \value{
 A `ce_simple` object (data frame) containing the estimated effects and their credible intervals.
+  For `Classic_Fit` objects, test columns (`df`, `t value`, and `Pr`) are also returned when
+  standard errors are available.
 }
 \description{
 Calculate the effect of a focal variable at different levels of a moderator.

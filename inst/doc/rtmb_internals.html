@@ -660,6 +660,28 @@ posterior medians, intervals, diagnostics, posterior predictive checks,
 and bridge sampling.</p>
 <p>MCMC samples are drawn on the unconstrained scale and returned on the
 natural constrained scale.</p>
+<p>BayesRTMB’s NUTS implementation has two proposal-selection variants.
+The default, <code>nuts_variant = &quot;multinomial&quot;</code>, uses Stan-style
+Hamiltonian-weighted proposal selection over the built trajectory. The
+alternative, <code>nuts_variant = &quot;slice&quot;</code>, uses slice-based
+proposal selection. For ordinary use, the default is intended to be the
+main path.</p>
+<p>The mass matrix can be controlled with <code>metric</code>. The
+available choices are <code>&quot;diag&quot;</code>, <code>&quot;dense&quot;</code>,
+<code>&quot;hybrid&quot;</code>, and <code>&quot;auto&quot;</code>. A diagonal metric is
+cheaper and often sufficient, while a dense metric can improve sampling
+when parameters are strongly correlated. The hybrid metric uses a dense
+block for non-random parameters and a diagonal block for random
+parameters. The default <code>&quot;auto&quot;</code> starts from the hybrid
+strategy and can fall back to a simpler metric during warmup when the
+dense block is not useful or is numerically unstable.</p>
+<p>Warmup learns both step size and metric information.
+<code>metric_adaptation = &quot;stan_window&quot;</code> uses a Stan-style
+windowed adaptation schedule and is the default. The
+<code>diagnose()</code> method reports the effective metric, warmup
+summaries, divergences, tree depth, leapfrog counts, and other
+information useful for checking whether the sampler is behaving
+well.</p>
 </div>
 <div id="optimize" class="section level2">
 <h2>optimize</h2>
@@ -961,7 +983,7 @@ engine, but their responsibilities and return objects are distinct.</li>
 wrapper-generated models, see <a href="wrapper_functions.html">Wrapper
 Functions</a> and <code>print_code()</code>. For a detailed mixed-model
 and GLMM workflow, see <a href="rtmb_glmer.html">Hierarchical Models and
-GLMMs</a>.</p>
+GLMMs</a>. For a compact user-facing reference, see <a href="analysis_reference.html">Analysis Reference</a>.</p>
 </div>
 
 

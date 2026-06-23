@@ -69,6 +69,66 @@ make_glmer_Z_matrix <- function(Zt, group_idx, N = length(group_idx)) {
   as.data.frame(data)[, vars, drop = FALSE]
 }
 
+.resolve_glmer_cwc_value <- function(expr, env, data_names = character()) {
+  if (is.character(expr)) {
+    return(expr)
+  }
+  if (is.symbol(expr)) {
+    name <- as.character(expr)
+    if (name %in% data_names) {
+      return(name)
+    }
+    value <- tryCatch(eval(expr, envir = env), error = function(e) NULL)
+    if (is.null(value)) name else value
+  } else {
+    eval(expr, envir = env)
+  }
+}
+
+.resolve_glmer_cwc_spec <- function(expr, env, data_names = character()) {
+  if (identical(expr, quote(NULL))) {
+    return(NULL)
+  }
+
+  spec <- if (is.call(expr) && identical(expr[[1]], as.name("list"))) {
+    elems <- as.list(expr)[-1]
+    values <- lapply(elems, .resolve_glmer_cwc_value, env = env, data_names = data_names)
+    names(values) <- names(elems)
+    values
+  } else {
+    tryCatch(
+      eval(expr, envir = env),
+      error = function(e) {
+        stop(
+          "Invalid 'cwc' format. Use list(cluster = ID, pars = c('var1', 'var2')) ",
+          "or list(ID, 'var1').",
+          call. = FALSE
+        )
+      }
+    )
+  }
+
+  if (!is.null(spec) && !is.list(spec)) {
+    stop(
+      "Invalid 'cwc' format. Use list(cluster = ID, pars = c('var1', 'var2')) ",
+      "or list(ID, 'var1').",
+      call. = FALSE
+    )
+  }
+  spec
+}
+
+.glmer_fixed_numeric_vars <- function(formula, data, exclude = character()) {
+  vars_in_fixed <- all.vars(nobars(formula))
+  if (length(vars_in_fixed) > 0L) {
+    vars_in_fixed <- vars_in_fixed[-1]
+  }
+  vars_in_fixed <- unique(vars_in_fixed)
+  vars_in_fixed <- setdiff(vars_in_fixed, exclude)
+  vars_in_fixed <- vars_in_fixed[vars_in_fixed %in% names(data)]
+  vars_in_fixed[vapply(data[vars_in_fixed], is.numeric, logical(1))]
+}
+
 #' Prepare GLMM Formula Components
 #'
 #' @description
@@ -267,13 +327,18 @@ make_glmer_re_terms <- function(formula, data, family = "gaussian",
 #' @param family Character string of the distribution family (e.g., "gaussian",
 #'   "binomial", "poisson", "ordered", "sequential")
 #' @param laplace Logical; whether to marginalize random effects using Laplace approximation
-#' @param prior An object of class "rtmb_prior" specifying the prior distribution. Use prior_weak(), prior_rhs(), or prior_ssp(). Default is `prior_flat()`.
+#' @param prior An object of class "rtmb_prior" specifying the prior
+#'   distribution. Use `prior_flat()`, `prior_normal()`, `prior_weak()`,
+#'   `prior_rhs()`, or `prior_ssp()`. `prior_jzs()` is available for
+#'   continuous families. Default is `prior_flat()`.
 #' @param y_range Theoretical minimum and maximum values of the response variable as a vector c(min, max). Required when using weakly informative or regularized priors with continuous models.
 #' @param init List of initial values (generated automatically based on glm if omitted)
 
 #' @param gmc Character vector of variable names for Grand Mean Centering (GMC). If "all", all numeric variables are centered.
 #' @param centering Alias for `gmc`.
 #' @param cwc List for Centering Within Cluster (CWC). Should contain \code{cluster} (group variable) and \code{pars} (variable names to center).
+#'   You can also use \code{cwc = list(ID, "x")} or \code{cwc = list(ID, "all")};
+#'   \code{"all"} centers all numeric fixed-effect variables within the cluster.
 #' @param view Character vector of parameter names to prioritize in summary.
 #' @param factors Character vector of variable names to be treated as factors.
 #' @param contrasts Character string specifying the contrast type ("treatment" or "sum").
@@ -309,6 +374,8 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
                        missing = c("listwise", "fiml"),
                        WAIC = FALSE,
                        .force_sum = FALSE) {
+
+  cwc <- if (base::missing(cwc)) NULL else .resolve_glmer_cwc_spec(substitute(cwc), parent.frame(), names(data))
 
   if (!is.null(centering)) {
     if (!is.null(gmc) && !identical(gmc, centering)) {
@@ -382,10 +449,7 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
     # 1. Grand Mean Centering
     if (!is.null(gmc)) {
       target_gmc <- if (identical(gmc, "all")) {
-        vars_in_fixed <- all.vars(nobars(formula))
-        vars_in_fixed <- vars_in_fixed[-1]
-        vars_in_fixed <- vars_in_fixed[vars_in_fixed %in% names(data_centered)]
-        vars_in_fixed[vapply(data_centered[vars_in_fixed], is.numeric, logical(1))]
+        .glmer_fixed_numeric_vars(formula, data_centered)
       } else {
         gmc
       }
@@ -417,7 +481,14 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
       }
 
       # Resolve group ID (character or symbol)
-      group_id <- if (is.character(cluster_var)) {
+      group_var_name <- if (is.character(cluster_var) && length(cluster_var) == 1L &&
+                            cluster_var %in% names(data_centered)) {
+        cluster_var
+      } else {
+        NULL
+      }
+
+      group_id <- if (!is.null(group_var_name)) {
         data_centered[[cluster_var]]
       } else {
         # cluster_var might be a symbol (e.g., group)
@@ -434,6 +505,14 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
         } else {
            stop("Cluster variable for CWC not found.")
         }
+      }
+
+      if (is.character(target_pars) && length(target_pars) == 1L && identical(target_pars, "all")) {
+        target_pars <- .glmer_fixed_numeric_vars(
+          formula,
+          data_centered,
+          exclude = group_var_name %||% character()
+        )
       }
 
       for (v in target_pars) {
@@ -502,15 +581,21 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
     prior <- prior_weak()
   }
 
-  if (!inherits(prior, "rtmb_prior")) {
+  prior <- .validate_prior_type(
+    prior,
+    allowed = c("flat", "normal", "weak", "rhs", "ssp", "jzs"),
+    context = "rtmb_glmer()"
+  )
+
+  prior_type <- prior$type
+  if (identical(prior_type, "jzs") &&
+      !(family %in% c("gaussian", "lognormal", "student_t"))) {
     stop(
-      "prior must be an object of class 'rtmb_prior'. ",
-      "Use prior_flat(), prior_normal(), prior_weak(), prior_rhs(), or prior_ssp().",
+      "prior_jzs() is currently supported only for continuous rtmb_glmer() families ",
+      "('gaussian', 'lognormal', and 'student_t').",
       call. = FALSE
     )
   }
-
-  prior_type <- prior$type
 
   is_flat <- identical(prior_type, "flat")
   is_normal <- identical(prior_type, "normal")
@@ -1056,7 +1141,7 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
   transform_exprs <- list()
   if (family == "sequential") {
     if (K > 0) transform_exprs[[1]] <- quote(eta <- X %*% b)
-    else transform_exprs[[1]] <- quote(eta <- matrix(0, N, num_categories - 1))
+    else transform_exprs[[1]] <- quote(eta <- rtmb_array(0, dim = c(N, num_categories - 1)))
   } else if (has_intercept) {
     if (use_centering) {
       if (K > 0) transform_exprs[[1]] <- quote(eta <- Intercept_c + X_c %*% b)
@@ -1067,7 +1152,7 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
     }
   } else {
     if (K > 0) transform_exprs[[1]] <- quote(eta <- X %*% b)
-    else transform_exprs[[1]] <- quote(eta <- rep(0, N))
+    else transform_exprs[[1]] <- quote(eta <- rtmb_vector(0, N))
   }
 
   if (has_random) {
@@ -1153,7 +1238,7 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
         ti <- time_resid[idx]
         mu_i <- eta[idx]
 
-        Vi <- matrix(0, ni, ni)
+        Vi <- rtmb_array(0, dim = c(ni, ni))
         for (r in 1:ni) {
           s_r <- if (has_sig_idx) sigma[sigma_idx[idx[r]]] else sigma
           for (c in 1:ni) {
@@ -1316,7 +1401,7 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
   if (isTRUE(WAIC)) {
     if (!is.null(resid_corr)) {
       waic_exprs <- c(transform_exprs, list(bquote({
-        log_lik <- numeric(num_groups_resid)
+        log_lik <- rtmb_vector(0, num_groups_resid)
         has_sig_idx <- !is.null(sigma_idx)
         .(if (resid_corr == "un") quote(R_mat_resid <- L_resid %*% t(L_resid)) else quote(NULL))
         for (i in 1:num_groups_resid) {
@@ -1324,7 +1409,7 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
           ni <- length(idx)
           ti <- time_resid[idx]
           mu_i <- eta[idx]
-          Vi <- matrix(0, ni, ni)
+          Vi <- rtmb_array(0, dim = c(ni, ni))
           for (r in 1:ni) {
             s_r <- if (has_sig_idx) sigma[sigma_idx[idx[r]]] else sigma
             for (c in 1:ni) {
@@ -1355,6 +1440,7 @@ rtmb_glmer <- function(formula, data, family = "gaussian", laplace = FALSE,
   }
 
   code_obj <- list(setup = setup_ast, parameters = param_ast)
+  code_obj$setup_env <- .rtmb_setup_env(environment(), setup_ast, exclude = names(dat))
   if (!is.null(tran_ast)) code_obj$transform <- tran_ast
   code_obj$model <- model_ast
   generate <- .rtmb_waic_generate_ast(generate, waic_ast)

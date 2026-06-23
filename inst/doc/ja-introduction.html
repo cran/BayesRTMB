@@ -393,13 +393,14 @@ vignette で扱います。</p>
 <h2>記事へのリンク</h2>
 <p>以下の記事があります。</p>
 <ul>
-<li><strong><a href="ja-introduction.html">日本語版の概要</a></strong></li>
-<li><strong><a href="ja-quick_start.html">クイックスタート</a></strong></li>
-<li><strong><a href="ja-wrapper_functions.html">ラッパー関数の使い方</a></strong></li>
-<li><strong><a href="ja-rtmb_glmer.html">階層モデル・GLMM・分散分析</a></strong></li>
-<li><strong><a href="ja-writing_models.html">モデルコードの書き方</a></strong></li>
-<li><strong><a href="ja-rtmb_internals.html">RTMB
-の仕組みと推定アルゴリズム</a></strong></li>
+<li><a href="ja-introduction.html"><strong>日本語版の概要</strong></a></li>
+<li><a href="ja-quick_start.html"><strong>クイックスタート</strong></a></li>
+<li><a href="ja-wrapper_functions.html"><strong>ラッパー関数の使い方</strong></a></li>
+<li><a href="ja-rtmb_glmer.html"><strong>階層モデル・GLMM・分散分析</strong></a></li>
+<li><a href="ja-writing_models.html"><strong>モデルコードの書き方</strong></a></li>
+<li><a href="ja-rtmb_internals.html"><strong>RTMB
+の仕組みと推定アルゴリズム</strong></a></li>
+<li><a href="ja-analysis_reference.html"><strong>分析リファレンス</strong></a></li>
 </ul>
 </div>
 </div>
@@ -613,6 +614,10 @@ exponential prior を持つ回帰モデルは次のように書けます。</p>
 <p>BayesRTMB は Bayes 推定を基本にしています。そのため、ここでは
 MCMC、MAP 推定、変分推論、そして頻度主義的分析の順に整理します。</p>
 <table>
+<colgroup>
+<col width="24%" />
+<col width="75%" />
+</colgroup>
 <thead>
 <tr class="header">
 <th>メソッド</th>
@@ -820,23 +825,26 @@ Laplace 近似が使われます。</p>
 <p>BayesRTMB
 の全体像がつかめたら、次は目的に応じて以下の記事を読むのがおすすめです。</p>
 <ol style="list-style-type: decimal">
-<li><p><strong><a href="ja-quick_start.html">クイックスタート</a></strong><br />
+<li><p><a href="ja-quick_start.html"><strong>クイックスタート</strong></a><br />
 基本的なモデルを実際に動かしながら、<code>rtmb_code()</code> と
 <code>rtmb_model()</code> の流れを確認できます。</p></li>
-<li><p><strong><a href="ja-wrapper_functions.html">ラッパー関数の使い方</a></strong><br />
+<li><p><a href="ja-wrapper_functions.html"><strong>ラッパー関数の使い方</strong></a><br />
 回帰、一般化線形モデル、混合モデル、t
 検定など、標準的な分析をラッパー関数で実行する方法を確認できます。</p></li>
-<li><p><strong><a href="ja-rtmb_glmer.html">階層モデル・GLMM・分散分析</a></strong><br />
+<li><p><a href="ja-rtmb_glmer.html"><strong>階層モデル・GLMM・分散分析</strong></a><br />
 <code>rtmb_glmer()</code>
 を使った階層モデル、GLMM、順序モデル、残差相関、可視化の流れを確認できます。</p></li>
-<li><p><strong><a href="ja-writing_models.html">モデルコードの書き方</a></strong><br />
+<li><p><a href="ja-writing_models.html"><strong>モデルコードの書き方</strong></a><br />
 <code>setup</code>, <code>parameters</code>, <code>transform</code>,
 <code>model</code>, <code>generate</code>
 の各ブロックを使って、自分でモデルを書く方法を詳しく説明します。</p></li>
-<li><p><strong><a href="ja-rtmb_internals.html">RTMB
-の仕組みと推定アルゴリズム</a></strong><br />
+<li><p><a href="ja-rtmb_internals.html"><strong>RTMB
+の仕組みと推定アルゴリズム</strong></a><br />
 Laplace
 近似、制約付きパラメータ、MCMC、変分推論などの内部処理を確認できます。</p></li>
+<li><p><a href="ja-analysis_reference.html"><strong>分析リファレンス</strong></a><br />
+fit object のメソッド、モデル比較、固定パラメータ、分布、AD
+テープ化の注意点を確認できます。</p></li>
 </ol>
 </div>
 

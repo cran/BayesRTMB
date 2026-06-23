@@ -8,6 +8,10 @@
 #' @param effect Name of the variable to visualize (e.g., "X1" or "X1:X2").
 #' @param prob Probability for the credible/confidence interval (default is 0.95).
 #' @param sd_multiplier Numeric. Multiplier for standard deviation when splitting continuous moderators (default is 1).
+#' @param sd_slice Logical or NULL. If TRUE, continuous moderators are evaluated at
+#'   mean - SD, mean, and mean + SD. If FALSE, all observed moderator values are used.
+#'   If NULL (default), sd slicing is used automatically when the moderator has 6 or more
+#'   unique values.
 #' @param ... Additional arguments.
 #'
 #' @return An object of class `ce_rtmb` containing the predicted values and their credible intervals.
@@ -22,14 +26,327 @@
 #'   summary(ce)
 #' }
 #' @export
-conditional_effects <- function(fit, effect, prob = 0.95, sd_multiplier = 1, ...) {
+conditional_effects <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, ...) {
   UseMethod("conditional_effects")
 }
 
 #' @method conditional_effects default
 #' @export
-conditional_effects.default <- function(fit, effect, prob = 0.95, sd_multiplier = 1, ...) {
+conditional_effects.default <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, ...) {
   stop(sprintf("No conditional_effects method for object of class '%s'.", class(fit)[1]))
+}
+
+.ce_resolve_sd_slice <- function(x, sd_slice) {
+  if (!is.null(sd_slice)) {
+    if (!is.logical(sd_slice) || length(sd_slice) != 1L || is.na(sd_slice)) {
+      stop("'sd_slice' must be TRUE, FALSE, or NULL.", call. = FALSE)
+    }
+    return(isTRUE(sd_slice))
+  }
+  is.numeric(x) && length(unique(x[!is.na(x)])) >= 6
+}
+
+.ce_make_base_data <- function(raw_data) {
+  base_data <- lapply(raw_data, function(x) {
+    if (is.numeric(x)) {
+      mean(x, na.rm = TRUE)
+    } else if (is.factor(x) || is.character(x)) {
+      tbl <- table(x)
+      factor(names(tbl)[which.max(tbl)], levels = levels(as.factor(x)))
+    } else {
+      x[1]
+    }
+  })
+  as.data.frame(base_data)
+}
+
+.ce_model_matrix <- function(fit, newdata) {
+  model_obj <- fit$model
+  fixed_form <- nobars(model_obj$formula)
+  rhs <- delete.response(terms(fixed_form))
+  mf_raw <- model.frame(rhs, data = model_obj$raw_data, na.action = na.pass)
+  xlev <- .getXlevels(terms(rhs), mf_raw)
+  model.matrix(rhs, data = newdata, xlev = xlev)
+}
+
+.ce_prepare_newdata <- function(fit, effect, sd_multiplier = 1, sd_slice = NULL, resolution = 100) {
+  model_obj <- fit$model
+  if (is.null(model_obj$formula) || is.null(model_obj$raw_data)) {
+    stop("This model object does not contain a formula or the original data.")
+  }
+
+  raw_data <- model_obj$raw_data
+  eff_vars <- strsplit(effect, ":")[[1]]
+  if (length(eff_vars) > 2) {
+    stop("Interaction plots for 3 or more variables are not currently supported.")
+  }
+  eff1 <- eff_vars[1]
+  eff2 <- if (length(eff_vars) == 2) eff_vars[2] else NULL
+
+  base_data <- .ce_make_base_data(raw_data)
+
+  val1 <- raw_data[[eff1]]
+  if (is.null(val1)) stop(sprintf("Variable '%s' not found in the data.", eff1))
+  is_numeric1 <- is.numeric(val1)
+  if (is_numeric1) {
+    seq1 <- seq(min(val1, na.rm = TRUE), max(val1, na.rm = TRUE), length.out = resolution)
+  } else {
+    seq1 <- sort(unique(val1))
+  }
+
+  if (!is.null(eff2)) {
+    val2 <- raw_data[[eff2]]
+    if (is.null(val2)) stop(sprintf("Variable '%s' not found in the data.", eff2))
+
+    if (.ce_resolve_sd_slice(val2, sd_slice)) {
+      seq2 <- c(mean(val2, na.rm = TRUE) - sd_multiplier * sd(val2, na.rm = TRUE),
+                mean(val2, na.rm = TRUE),
+                mean(val2, na.rm = TRUE) + sd_multiplier * sd(val2, na.rm = TRUE))
+      seq2 <- round(seq2, 2)
+    } else {
+      seq2 <- sort(unique(val2))
+    }
+
+    grid_data <- expand.grid(eff1 = seq1, eff2 = seq2)
+    names(grid_data) <- c(eff1, eff2)
+
+    newdata <- base_data[rep(1, nrow(grid_data)), , drop = FALSE]
+    newdata[[eff1]] <- grid_data[[eff1]]
+    newdata[[eff2]] <- grid_data[[eff2]]
+  } else {
+    newdata <- base_data[rep(1, length(seq1)), , drop = FALSE]
+    newdata[[eff1]] <- seq1
+  }
+
+  list(
+    newdata = newdata,
+    X_new = .ce_model_matrix(fit, newdata),
+    effect_vars = eff_vars,
+    is_numeric = is_numeric1
+  )
+}
+
+.ce_inv_link <- function(fam) {
+  if (is.null(fam)) fam <- "gaussian"
+  switch(fam,
+         "gaussian" = , "lognormal" = , "student_t" = function(x) x,
+         "poisson" = , "neg_binomial" = , "gamma" = exp,
+         "bernoulli" = , "binomial" = plogis,
+         function(x) x)
+}
+
+.ce_inv_link_deriv <- function(fam, eta) {
+  if (is.null(fam)) fam <- "gaussian"
+  switch(fam,
+         "gaussian" = , "lognormal" = , "student_t" = rep(1, length(eta)),
+         "poisson" = , "neg_binomial" = , "gamma" = exp(eta),
+         "bernoulli" = , "binomial" = {
+           p <- plogis(eta)
+           p * (1 - p)
+         },
+         rep(1, length(eta)))
+}
+
+.ce_beta_from_lists <- function(fit, con, tran = NULL) {
+  if (!is.null(con$beta)) {
+    return(as.numeric(con$beta))
+  }
+  if (is.null(con$b)) {
+    stop("Could not find fixed effect parameters (b or beta) in the fit object.")
+  }
+
+  b <- as.numeric(con$b)
+  intercept <- NULL
+  if (!is.null(con$Intercept)) {
+    intercept <- as.numeric(con$Intercept)
+  } else if (!is.null(tran$Intercept)) {
+    intercept <- as.numeric(tran$Intercept)
+  } else if (!is.null(con$Intercept_c)) {
+    x_mean <- fit$model$data$X_mean
+    if (!is.null(x_mean) && length(b) > 0) {
+      intercept <- as.numeric(con$Intercept_c) - sum(b * as.numeric(x_mean))
+    } else {
+      intercept <- as.numeric(con$Intercept_c)
+    }
+  }
+
+  if (!is.null(intercept)) c(intercept, b) else b
+}
+
+.ce_beta_from_unc <- function(fit, u) {
+  model_obj <- fit$model
+  con <- model_obj$to_constrained(model_obj$unconstrained_vector_to_list(u))
+  tran <- NULL
+  if (!is.null(model_obj$transform)) {
+    tran <- tryCatch(model_obj$transform(model_obj$data, con), error = function(e) NULL)
+  }
+  .ce_beta_from_lists(fit, con, tran)
+}
+
+.ce_beta_from_fit <- function(fit) {
+  .ce_beta_from_lists(fit, fit$par, fit$transform)
+}
+
+.ce_align_beta_design <- function(X_new, beta) {
+  if (ncol(X_new) != length(beta)) {
+    if (ncol(X_new) == length(beta) + 1 && colnames(X_new)[1] == "(Intercept)") {
+      X_new <- X_new[, -1, drop = FALSE]
+    } else if (length(beta) == ncol(X_new) + 1) {
+      X_new <- cbind(`(Intercept)` = 1, X_new)
+    } else {
+      stop(sprintf(
+        "Dimension mismatch: Design matrix has %d columns, but fixed effects have %d parameters.",
+        ncol(X_new), length(beta)
+      ))
+    }
+  }
+  list(X = X_new, beta = beta)
+}
+
+.ce_match_beta_parameter_names <- function(beta_names, fit = NULL) {
+  if (is.null(beta_names)) return(NULL)
+
+  available <- if (is.null(fit)) {
+    character(0)
+  } else {
+    unique(c(
+      rownames(fit$df_fixed %||% NULL),
+      rownames(fit$fit %||% NULL),
+      rownames(fit$vcov %||% NULL)
+    ))
+  }
+
+  vapply(beta_names, function(nm) {
+    candidates <- unique(c(
+      nm,
+      if (identical(nm, "(Intercept)")) c("Intercept", "Intercept_c") else character(0),
+      if (!identical(nm, "(Intercept)")) paste0("b[", nm, "]") else character(0)
+    ))
+    hit <- candidates[candidates %in% available]
+    if (length(hit) > 0L) hit[[1L]] else nm
+  }, character(1))
+}
+
+.ce_beta_delta_info <- function(fit, X_new) {
+  beta0_raw <- if (!is.null(fit$par_unc)) .ce_beta_from_unc(fit, fit$par_unc) else .ce_beta_from_fit(fit)
+  aligned <- .ce_align_beta_design(X_new, beta0_raw)
+  beta0 <- aligned$beta
+  X_aligned <- aligned$X
+  beta_names <- .ce_match_beta_parameter_names(colnames(X_aligned), fit)
+
+  V_beta <- NULL
+  V_unc <- fit$vcov_unc
+  u0 <- fit$par_unc
+  if (!is.null(V_unc) && !is.null(u0) &&
+      is.matrix(V_unc) && nrow(V_unc) == length(u0) && ncol(V_unc) == length(u0) &&
+      all(is.finite(V_unc))) {
+    J <- matrix(0, length(beta0), length(u0))
+    for (i in seq_along(u0)) {
+      step <- max(1e-6, abs(u0[i]) * 1e-6)
+      u_tmp <- u0
+      u_tmp[i] <- u_tmp[i] + step
+      beta_i_raw <- .ce_beta_from_unc(fit, u_tmp)
+      beta_i <- .ce_align_beta_design(X_new, beta_i_raw)$beta
+      J[, i] <- (beta_i - beta0) / step
+    }
+    V_beta <- J %*% V_unc %*% t(J)
+  } else if (!is.null(fit$vcov) && is.matrix(fit$vcov) &&
+             !is.null(beta_names) && all(beta_names %in% rownames(fit$vcov)) &&
+             all(beta_names %in% colnames(fit$vcov)) &&
+             all(is.finite(fit$vcov[beta_names, beta_names, drop = FALSE]))) {
+    V_beta <- fit$vcov[beta_names, beta_names, drop = FALSE]
+  } else if (!is.null(fit$vcov) && is.matrix(fit$vcov) &&
+             nrow(fit$vcov) == length(beta0) && ncol(fit$vcov) == length(beta0) &&
+             all(is.finite(fit$vcov))) {
+    V_beta <- fit$vcov
+  }
+
+  list(beta = beta0, X = X_aligned, V = V_beta, beta_names = beta_names)
+}
+
+.ce_wald_interval <- function(estimate, se, prob = 0.95) {
+  alpha <- 1 - prob
+  z <- stats::qnorm(1 - alpha / 2)
+  list(lower = estimate - z * se, upper = estimate + z * se)
+}
+
+.ce_has_sampling_draws <- function(fit) {
+  !is.null(fit$se_samples)
+}
+
+.ce_classic_df_from_gradient <- function(fit, grad, beta_names, tol = 1e-8) {
+  if (!inherits(fit, "Classic_Fit") || is.null(grad) || is.null(beta_names)) {
+    return(Inf)
+  }
+  df_tab <- fit$df_fixed
+  if (is.null(df_tab) || !"df" %in% names(df_tab)) {
+    return(Inf)
+  }
+
+  param_names <- .ce_match_beta_parameter_names(beta_names, fit)
+  active <- which(is.finite(grad) & abs(grad) > tol & param_names %in% rownames(df_tab))
+  if (length(active) == 0L) {
+    return(Inf)
+  }
+
+  df_vals <- suppressWarnings(as.numeric(df_tab[param_names[active], "df"]))
+  df_vals <- df_vals[is.finite(df_vals)]
+  if (length(df_vals) == 0L) Inf else min(df_vals)
+}
+
+.ce_classic_test_columns <- function(fit, estimate, se, grad, beta_names) {
+  df_val <- .ce_classic_df_from_gradient(fit, grad, beta_names)
+  stat <- if (is.finite(se) && se > 0) estimate / se else NA_real_
+  p_val <- if (is.finite(stat)) {
+    if (is.finite(df_val)) {
+      2 * stats::pt(-abs(stat), df = df_val)
+    } else {
+      2 * stats::pnorm(-abs(stat))
+    }
+  } else {
+    NA_real_
+  }
+
+  data.frame(
+    df = df_val,
+    `t value` = stat,
+    Pr = p_val,
+    check.names = FALSE
+  )
+}
+
+.ce_append_classic_test <- function(row, fit, estimate, se, grad, beta_names) {
+  if (!inherits(fit, "Classic_Fit")) return(row)
+  cbind(row, .ce_classic_test_columns(fit, estimate, se, grad, beta_names))
+}
+
+.conditional_effects_delta <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, resolution = 100, ...) {
+  prep <- .ce_prepare_newdata(fit, effect, sd_multiplier = sd_multiplier, sd_slice = sd_slice, resolution = resolution)
+  info <- .ce_beta_delta_info(fit, prep$X_new)
+
+  eta <- as.numeric(info$X %*% info$beta)
+  inv_link <- .ce_inv_link(fit$model$family)
+  estimate <- inv_link(eta)
+
+  se <- rep(NA_real_, length(estimate))
+  if (!is.null(info$V)) {
+    var_eta <- rowSums((info$X %*% info$V) * info$X)
+    deriv <- .ce_inv_link_deriv(fit$model$family, eta)
+    se <- abs(deriv) * sqrt(pmax(var_eta, 0))
+  }
+  ci <- .ce_wald_interval(estimate, se, prob = prob)
+
+  res_df <- data.frame(
+    estimate = estimate,
+    se = se,
+    lower = ci$lower,
+    upper = ci$upper
+  )
+  res_df <- cbind(prep$newdata[, prep$effect_vars, drop = FALSE], res_df)
+
+  res <- list(data = res_df, effect_vars = prep$effect_vars, is_numeric = prep$is_numeric)
+  class(res) <- "ce_rtmb"
+  res
 }
 
 #' Calculate conditional effects for MCMC fit objects
@@ -38,12 +355,16 @@ conditional_effects.default <- function(fit, effect, prob = 0.95, sd_multiplier 
 #' @param effect Name of the explanatory variable to visualize (e.g., "X1" or "X1:X2").
 #' @param prob Probability for the credible/confidence interval (default is 0.95).
 #' @param sd_multiplier Numeric. Multiplier for standard deviation when splitting continuous moderators (default is 1).
+#' @param sd_slice Logical or NULL. If TRUE, continuous moderators are evaluated at
+#'   mean - SD, mean, and mean + SD. If FALSE, all observed moderator values are used.
+#'   If NULL (default), sd slicing is used automatically when the moderator has 6 or more
+#'   unique values.
 #' @param resolution Grid resolution to calculate for continuous variables (default is 100).
 #' @param ... Additional arguments.
 #'
 #' @return A `ce_rtmb` object.
 #' @export
-conditional_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, resolution = 100, ...) {
+conditional_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, resolution = 100, ...) {
   model_obj <- fit$model
   if (is.null(model_obj$formula) || is.null(model_obj$raw_data)) {
     stop("This model object does not contain a formula or the original data.")
@@ -90,8 +411,8 @@ conditional_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier
     val2 <- raw_data[[eff2]]
     if (is.null(val2)) stop(sprintf("Variable '%s' not found in the data.", eff2))
 
-    # If the second variable is continuous and has many unique values, restrict to 3 representative points (Mean-1SD, Mean, Mean+1SD)
-    if (is.numeric(val2) && length(unique(val2)) > 5) {
+    # If requested, restrict the moderator to 3 representative points (Mean-1SD, Mean, Mean+1SD)
+    if (.ce_resolve_sd_slice(val2, sd_slice)) {
       seq2 <- c(mean(val2, na.rm=TRUE) - sd_multiplier * sd(val2, na.rm=TRUE),
                 mean(val2, na.rm=TRUE),
                 mean(val2, na.rm=TRUE) + sd_multiplier * sd(val2, na.rm=TRUE))
@@ -112,7 +433,8 @@ conditional_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier
   }
 
   # 3. Create design matrix
-  rhs <- delete.response(terms(form))
+  fixed_form <- nobars(form)
+  rhs <- delete.response(terms(fixed_form))
   # Ensure all factor levels are known to model.matrix
   mf_raw <- model.frame(rhs, data = raw_data, na.action = na.pass)
   xlev <- .getXlevels(terms(rhs), mf_raw)
@@ -195,6 +517,7 @@ conditional_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier
 
   res_df <- data.frame(
     estimate   = apply(mu, 1, mean),
+    se         = apply(mu, 1, sd),
     lower      = apply(mu, 1, quantile, probs = lower_q),
     upper      = apply(mu, 1, quantile, probs = upper_q)
   )
@@ -208,7 +531,22 @@ conditional_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier
 
 #' @method conditional_effects map_fit
 #' @export
-conditional_effects.map_fit <- conditional_effects.mcmc_fit
+conditional_effects.map_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, resolution = 100, ...) {
+  if (.ce_has_sampling_draws(fit)) {
+    conditional_effects.mcmc_fit(fit, effect = effect, prob = prob, sd_multiplier = sd_multiplier,
+                                 sd_slice = sd_slice, resolution = resolution, ...)
+  } else {
+    .conditional_effects_delta(fit, effect = effect, prob = prob, sd_multiplier = sd_multiplier,
+                               sd_slice = sd_slice, resolution = resolution, ...)
+  }
+}
+
+#' @method conditional_effects Classic_Fit
+#' @export
+conditional_effects.Classic_Fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, resolution = 100, ...) {
+  .conditional_effects_delta(fit, effect = effect, prob = prob, sd_multiplier = sd_multiplier,
+                             sd_slice = sd_slice, resolution = resolution, ...)
+}
 
 #' @method conditional_effects advi_fit
 #' @export
@@ -224,6 +562,7 @@ conditional_effects.vb_fit <- conditional_effects.mcmc_fit
 #' @param ... Additional arguments.
 #' @export
 plot.ce_rtmb <- function(x, ...) {
+  plot_args <- list(...)
   df <- x$data
   eff_vars <- x$effect_vars
   eff1 <- eff_vars[1]
@@ -234,14 +573,21 @@ plot.ce_rtmb <- function(x, ...) {
   y_low <- df$lower
   y_up  <- df$upper
 
+  merge_plot_args <- function(defaults) {
+    defaults[intersect(names(defaults), names(plot_args))] <- NULL
+    c(defaults, plot_args)
+  }
+
   if (!has_interaction) {
     # --- Without interaction ---
     col_line <- rgb(0, 0.45, 0.7)
     col_ribbon <- rgb(0, 0.45, 0.7, 0.2)
 
     if (x$is_numeric) {
-      plot(x_val, y_est, type = "n", ylim = range(c(y_low, y_up)),
-           xlab = eff1, ylab = "Predicted value", main = paste("Conditional effect of", eff1), ...)
+      do.call(plot, merge_plot_args(list(
+        x = x_val, y = y_est, type = "n", ylim = range(c(y_low, y_up)),
+        xlab = eff1, ylab = "Predicted value", main = paste("Conditional effect of", eff1)
+      )))
       polygon(c(x_val, rev(x_val)), c(y_low, rev(y_up)), col = col_ribbon, border = NA)
       lines(x_val, y_est, col = col_line, lwd = 2)
     } else {
@@ -249,9 +595,11 @@ plot.ce_rtmb <- function(x, ...) {
       x_num <- as.numeric(x_fct)
       lvls <- levels(x_fct)
       
-      plot(x_num, y_est, type = "n", ylim = range(c(y_low, y_up)),
-           xlim = c(0.5, length(lvls) + 0.5), xaxt = "n",
-           xlab = eff1, ylab = "Predicted value", main = paste("Conditional effect of", eff1), ...)
+      do.call(plot, merge_plot_args(list(
+        x = x_num, y = y_est, type = "n", ylim = range(c(y_low, y_up)),
+        xlim = c(0.5, length(lvls) + 0.5), xaxt = "n",
+        xlab = eff1, ylab = "Predicted value", main = paste("Conditional effect of", eff1)
+      )))
       axis(1, at = 1:length(lvls), labels = lvls)
       segments(x0 = x_num, y0 = y_low, x1 = x_num, y1 = y_up, col = col_line, lwd = 2)
       points(x_num, y_est, col = col_line, pch = 16, cex = 1.5)
@@ -271,9 +619,11 @@ plot.ce_rtmb <- function(x, ...) {
     })
 
     if (x$is_numeric) {
-      plot(x_val, y_est, type = "n", ylim = range(c(y_low, y_up)),
-           xlab = eff1, ylab = "Predicted value",
-           main = paste("Conditional effect of", eff1, "by", eff2), ...)
+      do.call(plot, merge_plot_args(list(
+        x = x_val, y = y_est, type = "n", ylim = range(c(y_low, y_up)),
+        xlab = eff1, ylab = "Predicted value",
+        main = paste("Conditional effect of", eff1, "by", eff2)
+      )))
 
       for (i in seq_along(groups)) {
         idx <- df[[eff2]] == groups[i]
@@ -286,10 +636,12 @@ plot.ce_rtmb <- function(x, ...) {
       x_num <- as.numeric(x_fct)
       lvls <- levels(x_fct)
 
-      plot(x_num, y_est, type = "n", ylim = range(c(y_low, y_up)),
-           xlim = c(0.5, length(lvls) + 0.5), xaxt = "n",
-           xlab = eff1, ylab = "Predicted value",
-           main = paste("Conditional effect of", eff1, "by", eff2), ...)
+      do.call(plot, merge_plot_args(list(
+        x = x_num, y = y_est, type = "n", ylim = range(c(y_low, y_up)),
+        xlim = c(0.5, length(lvls) + 0.5), xaxt = "n",
+        xlab = eff1, ylab = "Predicted value",
+        main = paste("Conditional effect of", eff1, "by", eff2)
+      )))
       axis(1, at = 1:length(lvls), labels = lvls)
 
       # Shift X-axis slightly to avoid overlapping error bars
@@ -330,6 +682,122 @@ summary.ce_rtmb <- function(object, ...) {
   return(object$data)
 }
 
+.simple_effects_delta <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, ...) {
+  eff_vars <- strsplit(effect, ":")[[1]]
+  if (length(eff_vars) != 2) {
+    stop("simple_effects requires an interaction of exactly two variables (e.g., 'A:B').")
+  }
+
+  focal <- eff_vars[1]
+  mod <- eff_vars[2]
+
+  prep <- .ce_prepare_newdata(fit, effect = effect, resolution = 10,
+                              sd_multiplier = sd_multiplier, sd_slice = sd_slice)
+  mod_vals <- unique(prep$newdata[[mod]])
+  raw_data <- fit$model$raw_data
+  base_data <- .ce_make_base_data(raw_data)
+  beta_info <- .ce_beta_delta_info(fit, .ce_model_matrix(fit, base_data))
+  inv_link <- .ce_inv_link(fit$model$family)
+  inv_link_deriv <- function(eta) .ce_inv_link_deriv(fit$model$family, eta)
+
+  effect_summary <- function(X_hi, X_lo) {
+    X_hi <- .ce_align_beta_design(X_hi, beta_info$beta)$X
+    X_lo <- .ce_align_beta_design(X_lo, beta_info$beta)$X
+    eta_hi <- as.numeric(X_hi %*% beta_info$beta)
+    eta_lo <- as.numeric(X_lo %*% beta_info$beta)
+    estimate <- inv_link(eta_hi) - inv_link(eta_lo)
+
+    se <- NA_real_
+    grad <- NULL
+    if (!is.null(beta_info$V)) {
+      grad <- as.numeric(inv_link_deriv(eta_hi) * X_hi - inv_link_deriv(eta_lo) * X_lo)
+      se <- sqrt(pmax(as.numeric(t(grad) %*% beta_info$V %*% grad), 0))
+    }
+    ci <- .ce_wald_interval(estimate, se, prob = prob)
+    out <- c(estimate = estimate, se = se, lower = ci$lower, upper = ci$upper)
+    attr(out, "grad") <- grad
+    attr(out, "beta_names") <- colnames(X_hi)
+    out
+  }
+
+  results <- data.frame()
+
+  if (prep$is_numeric) {
+    eps <- 1e-4
+    f_val <- mean(raw_data[[focal]], na.rm = TRUE)
+
+    for (mv in mod_vals) {
+      newdata1 <- base_data
+      newdata2 <- base_data
+      newdata1[[mod]] <- mv
+      newdata2[[mod]] <- mv
+      newdata1[[focal]] <- f_val
+      newdata2[[focal]] <- f_val + eps
+
+      est_raw <- effect_summary(.ce_model_matrix(fit, newdata2), .ce_model_matrix(fit, newdata1))
+      grad <- attr(est_raw, "grad")
+      if (!is.null(grad)) grad <- grad / eps
+      beta_names <- attr(est_raw, "beta_names")
+      est <- est_raw / c(eps, eps, eps, eps)
+
+      res_row <- data.frame(
+        moderator = mod,
+        mod_value = mv,
+        term = paste("Slope of", focal),
+        estimate = est[["estimate"]],
+        se = est[["se"]],
+        lower = est[["lower"]],
+        upper = est[["upper"]]
+      )
+      res_row <- .ce_append_classic_test(
+        res_row, fit,
+        estimate = est[["estimate"]],
+        se = est[["se"]],
+        grad = grad,
+        beta_names = beta_names
+      )
+      results <- rbind(results, res_row)
+    }
+  } else {
+    focal_vals <- sort(unique(raw_data[[focal]]))
+    if (length(focal_vals) < 2) stop("Focal variable must have at least 2 levels.")
+
+    for (mv in mod_vals) {
+      sub_newdata <- base_data[rep(1, length(focal_vals)), , drop = FALSE]
+      sub_newdata[[mod]] <- mv
+      sub_newdata[[focal]] <- focal_vals
+      X_sub <- .ce_model_matrix(fit, sub_newdata)
+
+      for (i in 1:(length(focal_vals) - 1)) {
+        for (j in (i + 1):length(focal_vals)) {
+          est <- effect_summary(X_sub[j, , drop = FALSE], X_sub[i, , drop = FALSE])
+          res_row <- data.frame(
+            moderator = mod,
+            mod_value = mv,
+            term = paste(focal_vals[j], "-", focal_vals[i]),
+            estimate = est[["estimate"]],
+            se = est[["se"]],
+            lower = est[["lower"]],
+            upper = est[["upper"]]
+          )
+          res_row <- .ce_append_classic_test(
+            res_row, fit,
+            estimate = est[["estimate"]],
+            se = est[["se"]],
+            grad = attr(est, "grad"),
+            beta_names = attr(est, "beta_names")
+          )
+          results <- rbind(results, res_row)
+        }
+      }
+    }
+  }
+
+  names(results)[2] <- mod
+  class(results) <- c("ce_simple", "data.frame")
+  results
+}
+
 
 #' Calculate Simple Effects
 #'
@@ -342,9 +810,15 @@ summary.ce_rtmb <- function(object, ...) {
 #' @param effect Character string of the interaction (e.g., "A:B"). The first variable is the focal variable.
 #' @param prob Probability for the credible/confidence interval (default is 0.95).
 #' @param sd_multiplier Multiplier for SD for continuous moderators (default is 1).
+#' @param sd_slice Logical or NULL. If TRUE, continuous moderators are evaluated at
+#'   mean - SD, mean, and mean + SD. If FALSE, all observed moderator values are used.
+#'   If NULL (default), sd slicing is used automatically when the moderator has 6 or more
+#'   unique values.
 #' @param ... Additional arguments.
 #'
 #' @return A `ce_simple` object (data frame) containing the estimated effects and their credible intervals.
+#'   For `Classic_Fit` objects, test columns (`df`, `t value`, and `Pr`) are also returned when
+#'   standard errors are available.
 #'
 #' @examples
 #' \donttest{
@@ -356,7 +830,7 @@ summary.ce_rtmb <- function(object, ...) {
 #'   print(se)
 #' }
 #' @export
-simple_effects <- function(fit, effect, prob = 0.95, sd_multiplier = 1, ...) {
+simple_effects <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, ...) {
   UseMethod("simple_effects")
 }
 
@@ -366,9 +840,11 @@ simple_effects <- function(fit, effect, prob = 0.95, sd_multiplier = 1, ...) {
 #' @param effect Interaction term (e.g., "A:B").
 #' @param prob Probability for credible intervals.
 #' @param sd_multiplier Multiplier for SD for continuous moderators.
+#' @param sd_slice Logical or NULL; controls whether continuous moderators are
+#'   evaluated at mean - SD, mean, and mean + SD.
 #' @param ... Additional arguments.
 #' @export
-simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, ...) {
+simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, ...) {
   eff_vars <- strsplit(effect, ":")[[1]]
   if (length(eff_vars) != 2) {
     stop("simple_effects requires an interaction of exactly two variables (e.g., 'A:B').")
@@ -379,7 +855,8 @@ simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1,
   
   # 1. Reuse conditional_effects logic to get predicted values
   # We use a higher resolution for moderators if continuous
-  ce <- conditional_effects(fit, effect = effect, resolution = 10, sd_multiplier = sd_multiplier, ...)
+  ce <- conditional_effects(fit, effect = effect, resolution = 10,
+                            sd_multiplier = sd_multiplier, sd_slice = sd_slice, ...)
   df <- ce$data
   
   # Identify levels/values of the moderator
@@ -398,7 +875,8 @@ simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1,
       form <- model_obj$formula
       raw_data <- model_obj$raw_data
       X_mean <- model_obj$data$X_mean
-      rhs <- delete.response(terms(form))
+      fixed_form <- nobars(form)
+      rhs <- delete.response(terms(fixed_form))
       
       # Ensure all factor levels are known to model.matrix
       mf_raw <- model.frame(rhs, data = raw_data, na.action = na.pass)
@@ -469,6 +947,7 @@ simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1,
         mod_value = mv,
         term = paste("Slope of", focal),
         estimate = mean(slope_samples),
+        se = sd(slope_samples),
         lower = quantile(slope_samples, (1-prob)/2),
         upper = quantile(slope_samples, 1-(1-prob)/2)
       )
@@ -492,8 +971,13 @@ simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1,
       model_obj <- fit$model
       form <- model_obj$formula
       X_mean <- model_obj$data$X_mean
-      rhs <- delete.response(terms(form))
-      X_new <- model.matrix(rhs, data = newdata)
+      raw_data <- model_obj$raw_data
+      fixed_form <- nobars(form)
+      rhs <- delete.response(terms(fixed_form))
+
+      mf_raw <- model.frame(rhs, data = raw_data, na.action = na.pass)
+      xlev <- .getXlevels(terms(rhs), mf_raw)
+      X_new <- model.matrix(rhs, data = newdata, xlev = xlev)
       
       all_pars <- dimnames(fit$draws(inc_transform=TRUE))[[3]]
       if (any(grepl("^beta(\\[|$)", all_pars))) {
@@ -554,6 +1038,7 @@ simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1,
             mod_value = mv,
             term = paste(lvls[j], "-", lvls[i]),
             estimate = mean(diff_samples),
+            se = sd(diff_samples),
             lower = quantile(diff_samples, (1-prob)/2),
             upper = quantile(diff_samples, 1-(1-prob)/2)
           )
@@ -570,7 +1055,22 @@ simple_effects.mcmc_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1,
 
 #' @method simple_effects map_fit
 #' @export
-simple_effects.map_fit <- simple_effects.mcmc_fit
+simple_effects.map_fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, ...) {
+  if (.ce_has_sampling_draws(fit)) {
+    simple_effects.mcmc_fit(fit, effect = effect, prob = prob,
+                            sd_multiplier = sd_multiplier, sd_slice = sd_slice, ...)
+  } else {
+    .simple_effects_delta(fit, effect = effect, prob = prob,
+                          sd_multiplier = sd_multiplier, sd_slice = sd_slice, ...)
+  }
+}
+
+#' @method simple_effects Classic_Fit
+#' @export
+simple_effects.Classic_Fit <- function(fit, effect, prob = 0.95, sd_multiplier = 1, sd_slice = NULL, ...) {
+  .simple_effects_delta(fit, effect = effect, prob = prob,
+                        sd_multiplier = sd_multiplier, sd_slice = sd_slice, ...)
+}
 #' @method simple_effects advi_fit
 #' @export
 simple_effects.advi_fit <- simple_effects.mcmc_fit

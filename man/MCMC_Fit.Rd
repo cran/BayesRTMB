@@ -45,6 +45,30 @@ Bayes factors are computed only by marginal-likelihood model comparison.
 
 \item{\code{treedepth}}{Tree depth used in HMC/NUTS sampling.}
 
+\item{\code{n_leapfrog}}{Number of leapfrog steps for retained draws.}
+
+\item{\code{divergent}}{Logical matrix indicating divergent transitions.}
+
+\item{\code{energy}}{Hamiltonian energy for retained draws.}
+
+\item{\code{metric}}{Per-chain inverse mass matrix used by NUTS.}
+
+\item{\code{metric_type}}{Effective mass matrix adaptation type used by NUTS.}
+
+\item{\code{metric_requested}}{Mass matrix adaptation type requested by the user.}
+
+\item{\code{metric_effective}}{Effective mass matrix adaptation type by chain.}
+
+\item{\code{metric_auto}}{Automatic metric selection details by chain, if used.}
+
+\item{\code{metric_init}}{Initial metric source used by NUTS.}
+
+\item{\code{metric_adaptation}}{Metric learning mode used during warmup.}
+
+\item{\code{nuts_variant}}{NUTS proposal selection variant used for sampling.}
+
+\item{\code{warmup_diagnostics}}{Per-chain warmup diagnostics.}
+
 \item{\code{laplace}}{Logical; whether Laplace approximation was used.}
 
 \item{\code{posterior_mean}}{Posterior mean estimates.}
@@ -67,6 +91,7 @@ Bayes factors are computed only by marginal-likelihood model comparison.
 \item \href{#method-mcmc_fit-print}{\code{MCMC_Fit$print()}}
 \item \href{#method-mcmc_fit-draws}{\code{MCMC_Fit$draws()}}
 \item \href{#method-mcmc_fit-summary}{\code{MCMC_Fit$summary()}}
+\item \href{#method-mcmc_fit-rhat_summary}{\code{MCMC_Fit$rhat_summary()}}
 \item \href{#method-mcmc_fit-unconstrain_draws}{\code{MCMC_Fit$unconstrain_draws()}}
 \item \href{#method-mcmc_fit-log_prob}{\code{MCMC_Fit$log_prob()}}
 \item \href{#method-mcmc_fit-bridgesampling}{\code{MCMC_Fit$bridgesampling()}}
@@ -130,7 +155,19 @@ Create a new `MCMC_Fit` object.
   laplace,
   posterior_mean,
   max_treedepth = NULL,
-  pd_error_count = NULL
+  pd_error_count = NULL,
+  n_leapfrog = NULL,
+  divergent = NULL,
+  energy = NULL,
+  metric = NULL,
+  metric_type = NULL,
+  metric_init = NULL,
+  metric_requested = NULL,
+  metric_effective = NULL,
+  metric_auto = NULL,
+  metric_adaptation = NULL,
+  nuts_variant = NULL,
+  warmup_diagnostics = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -156,6 +193,30 @@ Create a new `MCMC_Fit` object.
 \item{\code{max_treedepth}}{Maximum tree depth requested for NUTS/HMC.}
 
 \item{\code{pd_error_count}}{Positive-definite/singularity errors treated as `lp = -Inf` by chain.}
+
+\item{\code{n_leapfrog}}{Number of leapfrog steps for retained draws.}
+
+\item{\code{divergent}}{Logical matrix indicating divergent transitions.}
+
+\item{\code{energy}}{Hamiltonian energy for retained draws.}
+
+\item{\code{metric}}{Per-chain inverse mass matrix used by NUTS.}
+
+\item{\code{metric_type}}{Effective mass matrix adaptation type used by NUTS.}
+
+\item{\code{metric_init}}{Initial metric source used by NUTS.}
+
+\item{\code{metric_requested}}{Mass matrix adaptation type requested by the user.}
+
+\item{\code{metric_effective}}{Effective mass matrix adaptation type by chain.}
+
+\item{\code{metric_auto}}{Automatic metric selection details by chain, if used.}
+
+\item{\code{metric_adaptation}}{Metric learning mode used during warmup.}
+
+\item{\code{nuts_variant}}{NUTS proposal selection variant used for sampling.}
+
+\item{\code{warmup_diagnostics}}{Per-chain warmup diagnostics.}
 }
 \if{html}{\out{</div>}}
 }
@@ -258,6 +319,49 @@ Summarize posterior draws.
 }
 \subsection{Returns}{
 A summary object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-mcmc_fit-rhat_summary"></a>}}
+\if{latex}{\out{\hypertarget{method-mcmc_fit-rhat_summary}{}}}
+\subsection{Method \code{rhat_summary()}}{
+Summarize R-hat values.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MCMC_Fit$rhat_summary(
+  pars = NULL,
+  chains = NULL,
+  best_chains = NULL,
+  inc_random = FALSE,
+  inc_transform = TRUE,
+  inc_generate = FALSE,
+  finite = TRUE,
+  ...
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{pars}}{Character or numeric vector specifying parameters to include.}
+
+\item{\code{chains}}{Numeric vector specifying chains to include.}
+
+\item{\code{best_chains}}{Integer; number of best chains to retain based on mean log-posterior.}
+
+\item{\code{inc_random}}{Logical; whether to include random effects. Default is FALSE.}
+
+\item{\code{inc_transform}}{Logical; whether to include transformed parameters. Default is TRUE.}
+
+\item{\code{inc_generate}}{Logical; whether to include generated quantities. Default is FALSE.}
+
+\item{\code{finite}}{Logical; whether to drop non-finite or missing R-hat values. Default is TRUE.}
+
+\item{\code{...}}{Additional arguments.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A numeric vector of R-hat values with class \code{"rhat_summary"}.
 }
 }
 \if{html}{\out{<hr>}}
@@ -406,13 +510,24 @@ A list of class \code{bayes_factor_rtmb} containing Bayes factor results.
 \subsection{Method \code{transformed_draws()}}{
 Compute transformed parameters from posterior draws.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{MCMC_Fit$transformed_draws(tran_fn = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{MCMC_Fit$transformed_draws(
+  tran_fn = NULL,
+  progress = c("auto", "none", "bar", "message"),
+  tape = c("auto", "none", "force")
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{tran_fn}}{A function for transformed parameters.}
+
+\item{\code{progress}}{Progress reporting style: `"auto"`, `"none"`, `"bar"`,
+or `"message"`. `"auto"` and `"bar"` use line-based messages.}
+
+\item{\code{tape}}{Derived-quantity evaluation mode. `"auto"` tries RTMB tape
+evaluation and falls back to R evaluation on error; `"none"` always uses
+R evaluation; `"force"` requires tape evaluation and errors if it fails.}
 }
 \if{html}{\out{</div>}}
 }
@@ -426,7 +541,11 @@ Transformed parameter draws.
 \subsection{Method \code{generated_quantities()}}{
 Compute generated quantities from posterior draws.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{MCMC_Fit$generated_quantities(code)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{MCMC_Fit$generated_quantities(
+  code,
+  progress = c("auto", "none", "bar", "message"),
+  tape = c("auto", "none", "force")
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -434,6 +553,13 @@ Compute generated quantities from posterior draws.
 \describe{
 \item{\code{code}}{An `rtmb_code(\{ ... \})` or `\{ ... \}` block containing the logic
 to be calculated using posterior samples.}
+
+\item{\code{progress}}{Progress reporting style: `"auto"`, `"none"`, `"bar"`,
+or `"message"`. `"auto"` and `"bar"` use line-based messages.}
+
+\item{\code{tape}}{Derived-quantity evaluation mode. `"auto"` tries RTMB tape
+evaluation and falls back to R evaluation on error; `"none"` always uses
+R evaluation; `"force"` requires tape evaluation and errors if it fails.}
 }
 \if{html}{\out{</div>}}
 }
